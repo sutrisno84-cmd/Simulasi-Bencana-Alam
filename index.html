@@ -1,0 +1,2245 @@
+<!DOCTYPE html>
+<html lang="id" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lab Simulasi Bencana Alam Interaktif</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        volcano: { light: '#f97316', DEFAULT: '#ea580c', dark: '#9a3412' },
+                        tornado: { light: '#38bdf8', DEFAULT: '#0284c7', dark: '#075985' },
+                        quake: { light: '#a855f7', DEFAULT: '#7e22ce', dark: '#581c87' },
+                        tsunami: { light: '#06b6d4', DEFAULT: '#0e7490', dark: '#155e75' },
+                        darkbg: '#0b0f19',
+                        panelbg: '#111827',
+                        borderglow: '#1f2937'
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif']
+                    }
+                }
+            }
+        }
+    </script>
+    <!-- Google Fonts Inter & Lucide Icons -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        body { font-family: 'Inter', sans-serif; background-color: #0b0f19; color: #f3f4f6; overflow-x: hidden; }
+        .glass-panel { background: rgba(17, 24, 39, 0.85); backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.1); }
+        .custom-scrollbar::-webkit-scrollbar { width: 6px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: rgba(15, 23, 42, 0.6); }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #374151; border-radius: 4px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #4b5563; }
+        input[type=range] { -webkit-appearance: none; background: #374151; height: 6px; border-radius: 3px; }
+        input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; height: 16px; width: 16px; border-radius: 50%; background: #3b82f6; cursor: pointer; transition: transform 0.1s; }
+        input[type=range]::-webkit-slider-thumb:hover { transform: scale(1.2); }
+        input[type=number]::-webkit-inner-spin-button, 
+        input[type=number]::-webkit-outer-spin-button { opacity: 0.6; }
+        canvas { touch-action: none; }
+        .sensor-btn.active { border-color: #38bdf8; background-color: rgba(14, 165, 233, 0.2); box-shadow: 0 0 10px rgba(56, 189, 248, 0.4); }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col text-slate-100 select-none">
+
+    <!-- Header Navbar -->
+    <header class="glass-panel sticky top-0 z-50 px-4 py-3 border-b border-slate-800 flex items-center justify-between">
+        <div class="flex items-center gap-3">
+            <div class="p-2 bg-gradient-to-tr from-orange-600 to-amber-500 rounded-lg shadow-lg">
+                <i data-lucide="flame" class="w-6 h-6 text-white"></i>
+            </div>
+            <div>
+                <h1 class="text-lg font-bold tracking-wide bg-clip-text text-transparent bg-gradient-to-r from-orange-400 via-sky-300 to-cyan-400">
+                    LAB SIMULASI BENCANA ALAM
+                </h1>
+                <p class="text-xs text-slate-400">Modul Interaktif IPA & Geografi - Sensor Presisi Tinggi</p>
+            </div>
+        </div>
+
+        <!-- Disasters Selector Tabs -->
+        <div class="hidden md:flex items-center gap-1 bg-slate-900/80 p-1.5 rounded-xl border border-slate-800">
+            <button id="tab-volcano" onclick="selectDisaster('volcano')" class="disaster-tab px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-2 transition-all bg-orange-600 text-white shadow">
+                <i data-lucide="volcano" class="w-4 h-4"></i> Gunung Berapi
+            </button>
+            <button id="tab-tornado" onclick="selectDisaster('tornado')" class="disaster-tab px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-2 transition-all text-slate-400 hover:text-white hover:bg-slate-800">
+                <i data-lucide="tornado" class="w-4 h-4"></i> Puting Beliung
+            </button>
+            <button id="tab-quake" onclick="selectDisaster('quake')" class="disaster-tab px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-2 transition-all text-slate-400 hover:text-white hover:bg-slate-800">
+                <i data-lucide="activity" class="w-4 h-4"></i> Gempa Bumi
+            </button>
+            <button id="tab-tsunami" onclick="selectDisaster('tsunami')" class="disaster-tab px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-2 transition-all text-slate-400 hover:text-white hover:bg-slate-800">
+                <i data-lucide="waves" class="w-4 h-4"></i> Tsunami
+            </button>
+        </div>
+
+        <!-- Action Controls -->
+        <div class="flex items-center gap-2">
+            <button id="btn-sound" onclick="toggleAudio()" class="p-2 bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white rounded-lg border border-slate-700 transition" title="Suara FX">
+                <i id="sound-icon" data-lucide="volume-x" class="w-5 h-5"></i>
+            </button>
+            <button onclick="openMissionsModal()" class="px-3 py-1.5 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white rounded-lg text-xs font-semibold flex items-center gap-1.5 shadow transition">
+                <i data-lucide="target" class="w-4 h-4"></i> Misi & Kuis
+            </button>
+            <button onclick="toggleInfoDrawer()" class="p-2 bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white rounded-lg border border-slate-700 transition" title="Penjelasan Edukasi">
+                <i data-lucide="book-open" class="w-5 h-5"></i>
+            </button>
+        </div>
+    </header>
+
+    <!-- Mobile Navigation Tabs -->
+    <div class="md:hidden flex overflow-x-auto gap-1 p-2 bg-slate-900 border-b border-slate-800 custom-scrollbar">
+        <button id="mob-tab-volcano" onclick="selectDisaster('volcano')" class="px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap bg-orange-600 text-white">Gunung Berapi</button>
+        <button id="mob-tab-tornado" onclick="selectDisaster('tornado')" class="px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap text-slate-400 bg-slate-800">Puting Beliung</button>
+        <button id="mob-tab-quake" onclick="selectDisaster('quake')" class="px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap text-slate-400 bg-slate-800">Gempa Bumi</button>
+        <button id="mob-tab-tsunami" onclick="selectDisaster('tsunami')" class="px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap text-slate-400 bg-slate-800">Tsunami</button>
+    </div>
+
+    <!-- Main Content Area -->
+    <main class="flex-1 flex flex-col lg:flex-row overflow-hidden p-3 gap-3">
+
+        <!-- Left Sidebar: Controls & Sensors -->
+        <aside class="w-full lg:w-80 flex flex-col gap-3 custom-scrollbar overflow-y-auto max-h-[45vh] lg:max-h-none">
+            
+            <!-- Observation Phase Toggle -->
+            <div class="glass-panel p-3 rounded-xl">
+                <label class="text-xs text-slate-400 font-semibold uppercase tracking-wider block mb-2">Mode Pengamatan</label>
+                <div class="grid grid-cols-2 gap-1 bg-slate-900/90 p-1 rounded-lg border border-slate-800">
+                    <button id="phase-cause" onclick="setPhase('cause')" class="py-1.5 text-xs font-medium rounded-md transition text-white bg-slate-700 shadow">
+                        1. Proses / Penyangga
+                    </button>
+                    <button id="phase-impact" onclick="setPhase('impact')" class="py-1.5 text-xs font-medium rounded-md transition text-slate-400 hover:text-white">
+                        2. Erupsi / Dampak
+                    </button>
+                </div>
+            </div>
+
+            <!-- Dynamic Simulation Sliders & Inputs Container -->
+            <div class="glass-panel p-4 rounded-xl flex flex-col gap-4">
+                <div class="flex items-center justify-between border-b border-slate-800 pb-2">
+                    <h2 class="text-sm font-bold flex items-center gap-2 text-slate-200">
+                        <i data-lucide="sliders" class="w-4 h-4 text-sky-400"></i> Kontrol Parameter
+                    </h2>
+                    <button onclick="resetParameters()" class="text-[11px] text-slate-400 hover:text-sky-400 transition flex items-center gap-1">
+                        <i data-lucide="rotate-ccw" class="w-3 h-3"></i> Reset
+                    </button>
+                </div>
+
+                <!-- VOLCANO CONTROLS -->
+                <div id="controls-volcano" class="disaster-controls flex flex-col gap-3">
+                    <div>
+                        <div class="flex justify-between items-center text-xs mb-1">
+                            <span class="text-slate-300">Tekanan Magma</span>
+                            <div class="flex items-center gap-1 font-mono text-orange-400 font-bold">
+                                <input type="number" id="num-volcano-pressure" min="0" max="150" value="0" oninput="updateParam('volcano', 'pressure', this.value, 'num')" class="w-16 bg-slate-900 border border-slate-700 rounded px-1.5 py-0.5 text-right font-mono text-xs text-orange-400 focus:outline-none focus:border-orange-500">
+                                <span>Bar</span>
+                            </div>
+                        </div>
+                        <input type="range" id="slider-volcano-pressure" min="0" max="150" value="0" oninput="updateParam('volcano', 'pressure', this.value, 'slider')">
+                    </div>
+                    <div>
+                        <div class="flex justify-between items-center text-xs mb-1">
+                            <span class="text-slate-300">Viskositas Magma</span>
+                            <div class="flex items-center gap-1 font-mono text-amber-400 font-bold">
+                                <span id="label-volcano-viscosity" class="text-[11px] text-slate-400 mr-1">Netral</span>
+                                <input type="number" id="num-volcano-viscosity" min="0" max="100" value="0" oninput="updateParam('volcano', 'viscosity', this.value, 'num')" class="w-14 bg-slate-900 border border-slate-700 rounded px-1.5 py-0.5 text-right font-mono text-xs text-amber-400 focus:outline-none focus:border-amber-500">
+                                <span>%</span>
+                            </div>
+                        </div>
+                        <input type="range" id="slider-volcano-viscosity" min="0" max="100" value="0" oninput="updateParam('volcano', 'viscosity', this.value, 'slider')">
+                    </div>
+                    <div>
+                        <div class="flex justify-between items-center text-xs mb-1">
+                            <span class="text-slate-300">Kandungan Gas Vulkanik</span>
+                            <div class="flex items-center gap-1 font-mono text-yellow-400 font-bold">
+                                <input type="number" id="num-volcano-gas" min="0" max="100" value="0" oninput="updateParam('volcano', 'gas', this.value, 'num')" class="w-14 bg-slate-900 border border-slate-700 rounded px-1.5 py-0.5 text-right font-mono text-xs text-yellow-400 focus:outline-none focus:border-yellow-500">
+                                <span>%</span>
+                            </div>
+                        </div>
+                        <input type="range" id="slider-volcano-gas" min="0" max="100" value="0" oninput="updateParam('volcano', 'gas', this.value, 'slider')">
+                    </div>
+                    <div>
+                        <div class="flex justify-between items-center text-xs mb-1">
+                            <span class="text-slate-300">Suhu Dapur Magma</span>
+                            <div class="flex items-center gap-1 font-mono text-red-400 font-bold">
+                                <input type="number" id="num-volcano-temp" min="0" max="1400" value="0" oninput="updateParam('volcano', 'temp', this.value, 'num')" class="w-16 bg-slate-900 border border-slate-700 rounded px-1.5 py-0.5 text-right font-mono text-xs text-red-400 focus:outline-none focus:border-red-500">
+                                <span>°C</span>
+                            </div>
+                        </div>
+                        <input type="range" id="slider-volcano-temp" min="0" max="1400" value="0" oninput="updateParam('volcano', 'temp', this.value, 'slider')">
+                    </div>
+                </div>
+
+                <!-- TORNADO CONTROLS -->
+                <div id="controls-tornado" class="disaster-controls hidden flex flex-col gap-3">
+                    <div>
+                        <div class="flex justify-between items-center text-xs mb-1">
+                            <span class="text-slate-300">Beda Suhu Udara (ΔT)</span>
+                            <div class="flex items-center gap-1 font-mono text-sky-400 font-bold">
+                                <input type="number" id="num-tornado-tempdiff" min="0" max="60" value="0" oninput="updateParam('tornado', 'tempdiff', this.value, 'num')" class="w-14 bg-slate-900 border border-slate-700 rounded px-1.5 py-0.5 text-right font-mono text-xs text-sky-400 focus:outline-none focus:border-sky-500">
+                                <span>°C</span>
+                            </div>
+                        </div>
+                        <input type="range" id="slider-tornado-tempdiff" min="0" max="60" value="0" oninput="updateParam('tornado', 'tempdiff', this.value, 'slider')">
+                    </div>
+                    <div>
+                        <div class="flex justify-between items-center text-xs mb-1">
+                            <span class="text-slate-300">Geser Angin (Wind Shear)</span>
+                            <div class="flex items-center gap-1 font-mono text-cyan-400 font-bold">
+                                <input type="number" id="num-tornado-windshear" min="0" max="500" value="0" oninput="updateParam('tornado', 'windshear', this.value, 'num')" class="w-16 bg-slate-900 border border-slate-700 rounded px-1.5 py-0.5 text-right font-mono text-xs text-cyan-400 focus:outline-none focus:border-cyan-500">
+                                <span>km/h</span>
+                            </div>
+                        </div>
+                        <input type="range" id="slider-tornado-windshear" min="0" max="500" value="0" oninput="updateParam('tornado', 'windshear', this.value, 'slider')">
+                    </div>
+                    <div>
+                        <div class="flex justify-between items-center text-xs mb-1">
+                            <span class="text-slate-300">Kelembaban Permukaan</span>
+                            <div class="flex items-center gap-1 font-mono text-teal-400 font-bold">
+                                <input type="number" id="num-tornado-humidity" min="0" max="100" value="0" oninput="updateParam('tornado', 'humidity', this.value, 'num')" class="w-14 bg-slate-900 border border-slate-700 rounded px-1.5 py-0.5 text-right font-mono text-xs text-teal-400 focus:outline-none focus:border-teal-500">
+                                <span>%</span>
+                            </div>
+                        </div>
+                        <input type="range" id="slider-tornado-humidity" min="0" max="100" value="0" oninput="updateParam('tornado', 'humidity', this.value, 'slider')">
+                    </div>
+                </div>
+
+                <!-- EARTHQUAKE CONTROLS -->
+                <div id="controls-quake" class="disaster-controls hidden flex flex-col gap-3">
+                    <div>
+                        <div class="flex justify-between items-center text-xs mb-1">
+                            <span class="text-slate-300">Magnitudo (Skala Richter)</span>
+                            <div class="flex items-center gap-1 font-mono text-purple-400 font-bold">
+                                <input type="number" id="num-quake-magnitude" min="0.0" max="20" step="0.1" value="0" oninput="updateParam('quake', 'magnitude', this.value, 'num')" class="w-16 bg-slate-900 border border-slate-700 rounded px-1.5 py-0.5 text-right font-mono text-xs text-purple-400 focus:outline-none focus:border-purple-500">
+                                <span>SR</span>
+                            </div>
+                        </div>
+                        <input type="range" id="slider-quake-magnitude" min="0.0" max="20" step="0.1" value="0" oninput="updateParam('quake', 'magnitude', this.value, 'slider')">
+                    </div>
+                    <div>
+                        <div class="flex justify-between items-center text-xs mb-1">
+                            <span class="text-slate-300">Kedalaman Hiposentrum</span>
+                            <div class="flex items-center gap-1 font-mono text-indigo-400 font-bold">
+                                <input type="number" id="num-quake-depth" min="0" max="250" value="0" oninput="updateParam('quake', 'depth', this.value, 'num')" class="w-16 bg-slate-900 border border-slate-700 rounded px-1.5 py-0.5 text-right font-mono text-xs text-indigo-400 focus:outline-none focus:border-indigo-500">
+                                <span>km</span>
+                            </div>
+                        </div>
+                        <input type="range" id="slider-quake-depth" min="0" max="250" value="0" oninput="updateParam('quake', 'depth', this.value, 'slider')">
+                    </div>
+                </div>
+
+                <!-- TSUNAMI CONTROLS -->
+                <div id="controls-tsunami" class="disaster-controls hidden flex flex-col gap-3">
+                    <div>
+                        <div class="flex justify-between items-center text-xs mb-1">
+                            <span class="text-slate-300">Dislokasi Vertikal Dasar Laut</span>
+                            <div class="flex items-center gap-1 font-mono text-cyan-400 font-bold">
+                                <input type="number" id="num-tsunami-displacement" min="0.0" max="25.0" step="0.5" value="0" oninput="updateParam('tsunami', 'displacement', this.value, 'num')" class="w-16 bg-slate-900 border border-slate-700 rounded px-1.5 py-0.5 text-right font-mono text-xs text-cyan-400 focus:outline-none focus:border-cyan-500">
+                                <span>meter</span>
+                            </div>
+                        </div>
+                        <input type="range" id="slider-tsunami-displacement" min="0.0" max="25.0" step="0.5" value="0" oninput="updateParam('tsunami', 'displacement', this.value, 'slider')">
+                    </div>
+                    <div>
+                        <div class="flex justify-between items-center text-xs mb-1">
+                            <span class="text-slate-300">Kedalaman Dasar Laut</span>
+                            <div class="flex items-center gap-1 font-mono text-blue-400 font-bold">
+                                <input type="number" id="num-tsunami-depth" min="500" max="6000" step="100" value="0" oninput="updateParam('tsunami', 'depth', this.value, 'num')" class="w-20 bg-slate-900 border border-slate-700 rounded px-1.5 py-0.5 text-right font-mono text-xs text-blue-400 focus:outline-none focus:border-blue-500">
+                                <span>meter</span>
+                            </div>
+                        </div>
+                        <input type="range" id="slider-tsunami-depth" min="500" max="6000" step="100" value="0" oninput="updateParam('tsunami', 'depth', this.value, 'slider')">
+                    </div>
+                </div>
+
+                <button id="btn-trigger" onclick="triggerEvent()" class="w-full py-2.5 mt-2 bg-gradient-to-r from-orange-600 to-amber-600 hover:from-orange-500 hover:to-amber-500 font-bold text-white text-xs rounded-lg shadow-lg tracking-wide uppercase transition transform active:scale-95 flex items-center justify-center gap-2">
+                    <i data-lucide="zap" class="w-4 h-4"></i> Pemicu Peristiwa
+                </button>
+            </div>
+
+            <!-- Drag & Drop / Click Interactive Sensors Panel -->
+            <div class="glass-panel p-3 rounded-xl flex flex-col gap-2">
+                <div class="flex items-center justify-between">
+                    <label class="text-xs text-slate-400 font-semibold uppercase tracking-wider block">Sensor Interaktif</label>
+                    <span class="text-[10px] text-sky-400">Tarik atau Ketuk untuk Pasang</span>
+                </div>
+                
+                <div class="grid grid-cols-2 gap-2">
+                    <div id="sensor-btn-temp" draggable="true" ondragstart="dragSensor(event, 'temp')" onclick="selectSensorTool('temp')" class="sensor-btn p-2 bg-slate-800/80 hover:bg-slate-700 rounded-lg border border-slate-700 cursor-grab flex items-center gap-2 text-xs text-orange-300 transition">
+                        <i data-lucide="thermometer" class="w-4 h-4"></i> Termometer
+                    </div>
+                    <div id="sensor-btn-seismo" draggable="true" ondragstart="dragSensor(event, 'seismo')" onclick="selectSensorTool('seismo')" class="sensor-btn p-2 bg-slate-800/80 hover:bg-slate-700 rounded-lg border border-slate-700 cursor-grab flex items-center gap-2 text-xs text-purple-300 transition">
+                        <i data-lucide="activity" class="w-4 h-4"></i> Seismometer
+                    </div>
+                    <div id="sensor-btn-anemo" draggable="true" ondragstart="dragSensor(event, 'anemo')" onclick="selectSensorTool('anemo')" class="sensor-btn p-2 bg-slate-800/80 hover:bg-slate-700 rounded-lg border border-slate-700 cursor-grab flex items-center gap-2 text-xs text-sky-300 transition">
+                        <i data-lucide="wind" class="w-4 h-4"></i> Anemometer
+                    </div>
+                    <div id="sensor-btn-press" draggable="true" ondragstart="dragSensor(event, 'press')" onclick="selectSensorTool('press')" class="sensor-btn p-2 bg-slate-800/80 hover:bg-slate-700 rounded-lg border border-slate-700 cursor-grab flex items-center gap-2 text-xs text-yellow-300 transition">
+                        <i data-lucide="gauge" class="w-4 h-4"></i> Barometer
+                    </div>
+                </div>
+            </div>
+
+        </aside>
+
+        <!-- Center Canvas Viewport -->
+        <section class="flex-1 flex flex-col rounded-xl overflow-hidden glass-panel border border-slate-800 relative min-h-[450px]">
+            
+            <!-- Canvas HUD Overlay Top Bar -->
+            <div class="absolute top-3 left-3 right-3 z-10 flex justify-between items-center pointer-events-none">
+                <div class="flex items-center gap-2">
+                    <span id="hud-status-badge" class="px-2.5 py-1 bg-slate-900/90 border border-emerald-500/50 text-emerald-400 text-xs font-mono font-bold rounded-full flex items-center gap-1.5">
+                        <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span> SYSTEM NORMAL
+                    </span>
+                    <span id="hud-phase-title" class="px-2.5 py-1 bg-slate-900/80 border border-slate-700 text-slate-300 text-xs font-medium rounded-lg">
+                        Potongan Melintang Penampang
+                    </span>
+                </div>
+
+                <div class="flex items-center gap-2 pointer-events-auto">
+                    <button onclick="toggleCanvasPlay()" id="btn-pause" class="p-1.5 bg-slate-900/80 hover:bg-slate-800 text-slate-300 rounded-lg border border-slate-700 text-xs flex items-center gap-1" title="Jeda/Jalankan Simulasi">
+                        <i id="icon-pause" data-lucide="pause" class="w-4 h-4"></i>
+                    </button>
+                    <button onclick="clearSensors()" class="px-2 py-1 bg-slate-900/80 hover:bg-slate-800 text-slate-400 hover:text-rose-400 rounded-lg border border-slate-700 text-xs transition">
+                        Hapus Semua Sensor
+                    </button>
+                </div>
+            </div>
+
+            <!-- Hint Toast Overlay when active sensor selected -->
+            <div id="sensor-hint-toast" class="hidden absolute top-14 left-1/2 -translate-x-1/2 z-20 px-3 py-1.5 bg-sky-950/90 border border-sky-500 text-sky-200 text-xs rounded-full shadow-lg font-medium flex items-center gap-2 pointer-events-none animate-bounce">
+                <i data-lucide="mouse-pointer" class="w-3.5 h-3.5 text-sky-400"></i> Ketuk / Klik pada Canvas untuk menempatkan sensor
+            </div>
+
+            <!-- Dynamic Interactive Canvas -->
+            <div id="canvas-container" class="w-full flex-1 relative bg-slate-950 overflow-hidden" ondragover="allowDropSensor(event)" ondrop="dropSensor(event)">
+                <canvas id="main-canvas" class="w-full h-full block"></canvas>
+            </div>
+
+            <!-- Canvas Bottom Telemetry Overlay -->
+            <div class="p-2.5 bg-slate-900/95 border-t border-slate-800 flex flex-wrap items-center justify-between text-xs gap-2">
+                <div class="flex items-center gap-4 text-slate-400 font-mono text-[11px]">
+                    <div>FPS: <span id="tele-fps" class="text-sky-400">60</span></div>
+                    <div>PARTIKEL: <span id="tele-particles" class="text-orange-400">0</span></div>
+                    <div>SENSOR AKTIF: <span id="tele-sensors-count" class="text-cyan-400">0</span></div>
+                    <div>STATUS: <span id="tele-intensity" class="text-emerald-400">PASIF / TIDAK ADA DAMPAK</span></div>
+                </div>
+                <div id="disaster-indicator-badge" class="font-bold text-orange-400 uppercase tracking-wider text-[11px]">
+                    VOLCANO MONITORING SYSTEM
+                </div>
+            </div>
+
+        </section>
+
+        <!-- Right Drawer / Science Info Panel -->
+        <aside id="info-drawer" class="w-full lg:w-80 glass-panel rounded-xl p-4 flex flex-col gap-3 custom-scrollbar overflow-y-auto max-h-[35vh] lg:max-h-none">
+            <div class="flex items-center justify-between border-b border-slate-800 pb-2">
+                <h3 class="font-bold text-xs uppercase tracking-wider text-sky-400 flex items-center gap-2">
+                    <i data-lucide="info" class="w-4 h-4"></i> Edukasi & Geofisika
+                </h3>
+            </div>
+
+            <div id="info-content-volcano" class="disaster-info text-xs space-y-2 text-slate-300">
+                <p class="font-bold text-orange-400 text-sm">Gunung Berapi (Volcanology)</p>
+                <div class="bg-slate-900/80 p-2.5 rounded-lg border border-slate-800 space-y-1.5">
+                    <p><strong>Dapur Magma:</strong> Kantong batuan cair pijar di kedalaman litosfer. Tekanan berakumulasi akibat gas terlarut.</p>
+                    <p><strong>Awan Panas (Pyroclastic Flow):</strong> Campuran gas panas, abu, dan batuan vulkanik yang meluncur hingga 200 km/jam.</p>
+                    <p><strong>Viskositas:</strong> Magma kental (banyak silika) memicu letusan eksplosif (Plinian), sedangkan magma encer memicu aliran lava (Efusif).</p>
+                </div>
+            </div>
+
+            <div id="info-content-tornado" class="disaster-info hidden text-xs space-y-2 text-slate-300">
+                <p class="font-bold text-sky-400 text-sm">Angin Puting Beliung (Mesosiklon)</p>
+                <div class="bg-slate-900/80 p-2.5 rounded-lg border border-slate-800 space-y-1.5">
+                    <p><strong>Dinamika Atmosfer:</strong> Terjadi saat udara hangat & lembap dari bawah naik dan bertabrakan dengan udara dingin & kering dari atas.</p>
+                    <p><strong>Rotasi Geser Angin:</strong> Perbedaan kecepatan & arah angin di elevasi berbeda membentuk pusaran horizontal yang terangkat menjadi corong vertikal.</p>
+                    <p><strong>Skala Enhanced Fujita (EF):</strong> EF0 (ringan ~105 km/j) hingga EF5 (dahsyat >322 km/j).</p>
+                </div>
+            </div>
+
+            <div id="info-content-quake" class="disaster-info hidden text-xs space-y-2 text-slate-300">
+                <p class="font-bold text-purple-400 text-sm">Gempa Bumi (Seismologi)</p>
+                <div class="bg-slate-900/80 p-2.5 rounded-lg border border-slate-800 space-y-1.5">
+                    <p><strong>Penyebab:</strong> Pelepasan energi mendadak akibat patahan lempeng tektonik yang saling bertabrakan atau bergeser.</p>
+                    <p><strong>Gelombang P & S:</strong> Gelombang Primer (P) merambat cepat secara kompresional; Gelombang Sekunder (S) merambat melintang & merusak.</p>
+                </div>
+            </div>
+
+            <div id="info-content-tsunami" class="disaster-info hidden text-xs space-y-2 text-slate-300">
+                <p class="font-bold text-cyan-400 text-sm">Tsunami (Oseanografi)</p>
+                <div class="bg-slate-900/80 p-2.5 rounded-lg border border-slate-800 space-y-1.5">
+                    <p><strong>Dislokasi Dasar Laut:</strong> Gempa tektonik dangkal di dasar laut mengangkat/menurunkan kolom air secara tiba-tiba.</p>
+                    <p><strong>Efek Shoaling:</strong> Saat mendekati pantai dangkal, kecepatan gelombang berkurang tetapi tingginya melonjak drastis.</p>
+                </div>
+            </div>
+
+            <!-- Active Sensors Digital Readouts -->
+            <div class="mt-auto border-t border-slate-800 pt-3">
+                <div class="flex items-center justify-between mb-2">
+                    <h4 class="text-[11px] font-semibold text-slate-400 uppercase">Telemetri Sensor Terpasang</h4>
+                    <span class="text-[10px] text-slate-500">Geser ikon di canvas untuk pindah</span>
+                </div>
+                <div id="sensor-readout-list" class="space-y-1.5 text-xs max-h-48 overflow-y-auto custom-scrollbar">
+                    <div class="text-slate-500 italic text-[11px]">Belum ada sensor yang dipasang di canvas.</div>
+                </div>
+            </div>
+        </aside>
+
+    </main>
+
+    <!-- Missions & Quiz Modal -->
+    <div id="missions-modal" class="fixed inset-0 bg-black/70 backdrop-blur-md z-50 hidden flex items-center justify-center p-4">
+        <div class="glass-panel max-w-xl w-full rounded-2xl p-5 border border-slate-700 shadow-2xl flex flex-col gap-4 max-h-[90vh] overflow-y-auto custom-scrollbar">
+            <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+                <div class="flex items-center gap-2">
+                    <div class="p-1.5 bg-emerald-500/20 text-emerald-400 rounded-lg">
+                        <i data-lucide="award" class="w-5 h-5"></i>
+                    </div>
+                    <h3 class="font-bold text-base text-white">Misi Lab & Kuis Sains Siswa</h3>
+                </div>
+                <button onclick="closeMissionsModal()" class="text-slate-400 hover:text-white p-1">
+                    <i data-lucide="x" class="w-5 h-5"></i>
+                </button>
+            </div>
+
+            <!-- Mission Tabs -->
+            <div class="flex border-b border-slate-800 text-xs font-semibold">
+                <button onclick="switchModalTab('missions')" id="tab-btn-missions" class="px-4 py-2 text-emerald-400 border-b-2 border-emerald-500 font-semibold">Misi Eksperimen</button>
+                <button onclick="switchModalTab('quiz')" id="tab-btn-quiz" class="px-4 py-2 text-slate-400 hover:text-white font-semibold">Kuis Sains</button>
+            </div>
+
+            <!-- Missions List -->
+            <div id="modal-tab-missions" class="space-y-3">
+                <div class="bg-slate-900/90 p-3 rounded-xl border border-slate-800 flex items-start justify-between gap-3">
+                    <div>
+                        <span class="text-[10px] font-bold uppercase px-2 py-0.5 rounded bg-orange-950 text-orange-400 border border-orange-800">Misi 1 - Gunung Berapi</span>
+                        <h4 class="font-bold text-sm text-slate-100 mt-1">Picu Erupsi Eksplosif Plinian</h4>
+                        <p class="text-xs text-slate-400 mt-0.5">Atur Magma Viscosity > 80%, Gas Content > 80%, dan Pressure > 85 Bar pada mode Erupsi.</p>
+                    </div>
+                    <span id="mission-status-1" class="text-xs px-2.5 py-1 rounded bg-slate-800 text-slate-400 font-mono">Belum</span>
+                </div>
+
+                <div class="bg-slate-900/90 p-3 rounded-xl border border-slate-800 flex items-start justify-between gap-3">
+                    <div>
+                        <span class="text-[10px] font-bold uppercase px-2 py-0.5 rounded bg-sky-950 text-sky-400 border border-sky-800">Misi 2 - Puting Beliung</span>
+                        <h4 class="font-bold text-sm text-slate-100 mt-1">Bentuk Puting Beliung Supercell EF4+</h4>
+                        <p class="text-xs text-slate-400 mt-0.5">Atur Perbedaan Suhu (ΔT) > 35°C dan Wind Shear > 180 km/h pada mode Dampak.</p>
+                    </div>
+                    <span id="mission-status-2" class="text-xs px-2.5 py-1 rounded bg-slate-800 text-slate-400 font-mono">Belum</span>
+                </div>
+
+                <div class="bg-slate-900/90 p-3 rounded-xl border border-slate-800 flex items-start justify-between gap-3">
+                    <div>
+                        <span class="text-[10px] font-bold uppercase px-2 py-0.5 rounded bg-purple-950 text-purple-400 border border-purple-800">Misi 3 - Sensor Seismik</span>
+                        <h4 class="font-bold text-sm text-slate-100 mt-1">Ukur Gelombang Seismik Dahsyat</h4>
+                        <p class="text-xs text-slate-400 mt-0.5">Letakkan sensor Seismometer di Canvas saat terjadi Gempa Bumi magnitudo > 7.0 SR.</p>
+                    </div>
+                    <span id="mission-status-3" class="text-xs px-2.5 py-1 rounded bg-slate-800 text-slate-400 font-mono">Belum</span>
+                </div>
+            </div>
+
+            <!-- Quiz Panel -->
+            <div id="modal-tab-quiz" class="hidden space-y-4">
+                <div id="quiz-container" class="space-y-3">
+                    <!-- Quiz Question Content Injected via JS -->
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- JS Implementation -->
+    <script>
+        // Web Audio Synthesizer Engine
+        let audioCtx = null;
+        let isAudioMuted = true;
+        let activeNodes = [];
+
+        function initAudio() {
+            if (!audioCtx) {
+                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            }
+            if (audioCtx.state === 'suspended') {
+                audioCtx.resume();
+            }
+        }
+
+        function toggleAudio() {
+            initAudio();
+            isAudioMuted = !isAudioMuted;
+            const btn = document.getElementById('sound-icon');
+            if (isAudioMuted) {
+                btn.setAttribute('data-lucide', 'volume-x');
+                stopAllSounds();
+            } else {
+                btn.setAttribute('data-lucide', 'volume-2');
+                playAmbientSound();
+            }
+            lucide.createIcons();
+        }
+
+        function stopAllSounds() {
+            activeNodes.forEach(node => { try { node.stop(); } catch(e){} });
+            activeNodes = [];
+        }
+
+        function playSeismicShockSound() {
+            if (isAudioMuted || !audioCtx || state.quake.magnitude === 0) return;
+            try {
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(85, audioCtx.currentTime);
+                osc.frequency.exponentialRampToValueAtTime(20, audioCtx.currentTime + 1.2);
+                gain.gain.setValueAtTime(0.5, audioCtx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 1.2);
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+                osc.start();
+                osc.stop(audioCtx.currentTime + 1.2);
+            } catch(e){}
+        }
+
+        function playAmbientSound() {
+            if (isAudioMuted || !audioCtx) return;
+            stopAllSounds();
+
+            if (currentDisaster === 'volcano' && state.volcano.pressure > 0) {
+                const bufferSize = audioCtx.sampleRate * 2;
+                const buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
+                const data = buffer.getChannelData(0);
+                for (let i = 0; i < bufferSize; i++) {
+                    data[i] = Math.random() * 2 - 1;
+                }
+
+                const noise = audioCtx.createBufferSource();
+                noise.buffer = buffer;
+                noise.loop = true;
+
+                const filter = audioCtx.createBiquadFilter();
+                filter.type = 'lowpass';
+                filter.frequency.value = currentPhase === 'impact' ? 250 : 120;
+
+                const gain = audioCtx.createGain();
+                gain.gain.value = 0.15;
+
+                noise.connect(filter);
+                filter.connect(gain);
+                gain.connect(audioCtx.destination);
+                noise.start();
+                activeNodes.push(noise);
+            } else if (currentDisaster === 'tornado' && state.tornado.windshear > 0) {
+                const bufferSize = audioCtx.sampleRate * 2;
+                const buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
+                const data = buffer.getChannelData(0);
+                for (let i = 0; i < bufferSize; i++) {
+                    data[i] = Math.random() * 2 - 1;
+                }
+
+                const noise = audioCtx.createBufferSource();
+                noise.buffer = buffer;
+                noise.loop = true;
+
+                const filter = audioCtx.createBiquadFilter();
+                filter.type = 'bandpass';
+                filter.frequency.value = 400;
+                filter.Q.value = 3.0;
+
+                const gain = audioCtx.createGain();
+                gain.gain.value = 0.12;
+
+                noise.connect(filter);
+                filter.connect(gain);
+                gain.connect(audioCtx.destination);
+                noise.start();
+                activeNodes.push(noise);
+            } else if (currentDisaster === 'quake' && state.quake.magnitude > 0) {
+                const bufferSize = audioCtx.sampleRate * 2;
+                const buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
+                const data = buffer.getChannelData(0);
+                for (let i = 0; i < bufferSize; i++) {
+                    data[i] = Math.random() * 2 - 1;
+                }
+
+                const noise = audioCtx.createBufferSource();
+                noise.buffer = buffer;
+                noise.loop = true;
+
+                const filter = audioCtx.createBiquadFilter();
+                filter.type = 'lowpass';
+                filter.frequency.value = 35 + (state.quake.magnitude * 6);
+
+                const gain = audioCtx.createGain();
+                gain.gain.value = 0.18;
+
+                noise.connect(filter);
+                filter.connect(gain);
+                gain.connect(audioCtx.destination);
+                noise.start();
+                activeNodes.push(noise);
+            }
+        }
+
+        // Simulation App State
+        let currentDisaster = 'volcano';
+        let currentPhase = 'cause';
+        let isPaused = false;
+
+        const state = {
+            volcano: { pressure: 0, viscosity: 0, gas: 0, temp: 0, exploding: false },
+            tornado: { tempdiff: 0, windshear: 0, humidity: 0, funnelX: 0.5 },
+            quake: { magnitude: 0, depth: 0, waveRadius: 0, pWave: 0, sWave: 0 },
+            tsunami: { displacement: 0, depth: 3500, waveX: 0 }
+        };
+
+        let sensors = [];
+        let activeSensorTool = null;
+        let draggingSensor = null;
+        let dragOffset = { x: 0, y: 0 };
+        let particles = [];
+
+        // Canvas Setup
+        const canvas = document.getElementById('main-canvas');
+        const ctx = canvas.getContext('2d');
+
+        function resizeCanvas() {
+            const container = document.getElementById('canvas-container');
+            if (!container) return;
+            canvas.width = container.clientWidth * window.devicePixelRatio;
+            canvas.height = container.clientHeight * window.devicePixelRatio;
+            ctx.scale(window.devicePixelRatio, window.devicePixelRatio);
+        }
+        window.addEventListener('resize', resizeCanvas);
+        setTimeout(resizeCanvas, 50);
+
+        function selectDisaster(disaster) {
+            currentDisaster = disaster;
+            
+            document.querySelectorAll('.disaster-tab').forEach(el => {
+                el.className = "disaster-tab px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-2 transition-all text-slate-400 hover:text-white hover:bg-slate-800";
+            });
+            const activeTab = document.getElementById(`tab-${disaster}`);
+            if (activeTab) {
+                const colors = {
+                    volcano: 'bg-orange-600 text-white shadow',
+                    tornado: 'bg-sky-600 text-white shadow',
+                    quake: 'bg-purple-600 text-white shadow',
+                    tsunami: 'bg-cyan-600 text-white shadow'
+                };
+                activeTab.className = `disaster-tab px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-2 transition-all ${colors[disaster]}`;
+            }
+
+            const mobColors = {
+                volcano: 'bg-orange-600 text-white',
+                tornado: 'bg-sky-600 text-white',
+                quake: 'bg-purple-600 text-white',
+                tsunami: 'bg-cyan-600 text-white'
+            };
+            document.querySelectorAll('[id^="mob-tab-"]').forEach(el => {
+                el.className = "px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap text-slate-400 bg-slate-800";
+            });
+            const activeMobTab = document.getElementById(`mob-tab-${disaster}`);
+            if (activeMobTab) {
+                activeMobTab.className = `px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap ${mobColors[disaster]}`;
+            }
+
+            document.querySelectorAll('.disaster-controls').forEach(el => el.classList.add('hidden'));
+            document.querySelectorAll('.disaster-info').forEach(el => el.classList.add('hidden'));
+
+            const ctrl = document.getElementById(`controls-${disaster}`);
+            if (ctrl) ctrl.classList.remove('hidden');
+
+            const info = document.getElementById(`info-content-${disaster}`);
+            if (info) info.classList.remove('hidden');
+
+            document.getElementById('disaster-indicator-badge').innerText = `${disaster.toUpperCase()} MONITORING SYSTEM`;
+
+            particles = [];
+            playAmbientSound();
+            renderSensorReadoutsStructure();
+            checkMissions();
+        }
+
+        function setPhase(phase) {
+            currentPhase = phase;
+            const btnCause = document.getElementById('phase-cause');
+            const btnImpact = document.getElementById('phase-impact');
+            if (phase === 'cause') {
+                btnCause.className = "py-1.5 text-xs font-medium rounded-md transition text-white bg-slate-700 shadow";
+                btnImpact.className = "py-1.5 text-xs font-medium rounded-md transition text-slate-400 hover:text-white";
+                document.getElementById('hud-phase-title').innerText = "Potongan Melintang Penampang";
+            } else {
+                btnImpact.className = "py-1.5 text-xs font-medium rounded-md transition text-white bg-slate-700 shadow";
+                btnCause.className = "py-1.5 text-xs font-medium rounded-md transition text-slate-400 hover:text-white";
+                document.getElementById('hud-phase-title').innerText = "Perspektif Lanskap & Dampak Lingkungan";
+            }
+            particles = [];
+            playAmbientSound();
+            checkMissions();
+        }
+
+        function updateParam(disaster, param, val, source) {
+            if (val === "" || isNaN(val)) return;
+            val = parseFloat(val);
+            state[disaster][param] = val;
+
+            const slider = document.getElementById(`slider-${disaster}-${param}`);
+            const numInput = document.getElementById(`num-${disaster}-${param}`);
+
+            if (slider && source !== 'slider') slider.value = val;
+            if (numInput && source !== 'num') numInput.value = val;
+
+            if (disaster === 'volcano' && param === 'viscosity') {
+                const txt = val === 0 ? 'Netral' : val < 40 ? 'Encer' : val < 70 ? 'Sedang' : 'Kental';
+                const lbl = document.getElementById('label-volcano-viscosity');
+                if (lbl) lbl.innerText = txt;
+            }
+
+            checkMissions();
+        }
+
+        function resetParameters() {
+            state.volcano = { pressure: 0, viscosity: 0, gas: 0, temp: 0, exploding: false };
+            state.tornado = { tempdiff: 0, windshear: 0, humidity: 0, funnelX: 0.5 };
+            state.quake = { magnitude: 0, depth: 0, waveRadius: 0, pWave: 0, sWave: 0 };
+            state.tsunami = { displacement: 0, depth: 3500, waveX: 0 };
+
+            const params = [
+                { d: 'volcano', p: 'pressure', v: 0 },
+                { d: 'volcano', p: 'viscosity', v: 0 },
+                { d: 'volcano', p: 'gas', v: 0 },
+                { d: 'volcano', p: 'temp', v: 0 },
+                { d: 'tornado', p: 'tempdiff', v: 0 },
+                { d: 'tornado', p: 'windshear', v: 0 },
+                { d: 'tornado', p: 'humidity', v: 0 },
+                { d: 'quake', p: 'magnitude', v: 0 },
+                { d: 'quake', p: 'depth', v: 0 },
+                { d: 'tsunami', p: 'displacement', v: 0 },
+                { d: 'tsunami', p: 'depth', v: 3500 }
+            ];
+
+            params.forEach(item => {
+                updateParam(item.d, item.p, item.v);
+            });
+
+            selectDisaster(currentDisaster);
+        }
+
+        function triggerEvent() {
+            if (currentDisaster === 'volcano') {
+                if (state.volcano.pressure > 0) {
+                    state.volcano.exploding = true;
+                    setTimeout(() => state.volcano.exploding = false, 4000);
+                }
+            } else if (currentDisaster === 'quake') {
+                state.quake.pWave = 0;
+                state.quake.sWave = 0;
+                playSeismicShockSound();
+            } else if (currentDisaster === 'tsunami') {
+                state.tsunami.waveX = 0;
+            }
+            playAmbientSound();
+        }
+
+        // VOLCANO SIMULATION RENDERER
+        function renderVolcano(w, h, now) {
+            const p = state.volcano;
+            const isZero = p.pressure === 0 || p.temp === 0;
+
+            if (currentPhase === 'cause') {
+                const skyGrad = ctx.createLinearGradient(0, 0, 0, h * 0.4);
+                skyGrad.addColorStop(0, '#0284c7');
+                skyGrad.addColorStop(1, '#38bdf8');
+                ctx.fillStyle = skyGrad;
+                ctx.fillRect(0, 0, w, h * 0.4);
+
+                const craterW = w * 0.12;
+                const mountainBaseY = h * 0.45;
+                const craterY = h * 0.22;
+
+                const layerColors = ['#292524', '#44403c', '#1c1917', '#3f3f46', '#262626'];
+                for (let i = 0; i < 5; i++) {
+                    ctx.fillStyle = layerColors[i];
+                    ctx.beginPath();
+                    const depthY = mountainBaseY + i * (h * 0.12);
+                    ctx.fillRect(0, depthY, w, h * 0.12);
+                }
+
+                ctx.fillStyle = '#1c1917';
+                ctx.beginPath();
+                ctx.moveTo(0, mountainBaseY);
+                ctx.lineTo(w * 0.5 - craterW, craterY);
+                ctx.lineTo(w * 0.5 - craterW * 0.5, craterY + 20);
+                ctx.lineTo(w * 0.5 + craterW * 0.5, craterY + 20);
+                ctx.lineTo(w * 0.5 + craterW, craterY);
+                ctx.lineTo(w, mountainBaseY);
+                ctx.lineTo(w, h);
+                ctx.lineTo(0, h);
+                ctx.closePath();
+                ctx.fill();
+
+                ctx.strokeStyle = '#52525b';
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                ctx.moveTo(0, mountainBaseY);
+                ctx.lineTo(w * 0.5 - craterW, craterY);
+                ctx.moveTo(w, mountainBaseY);
+                ctx.lineTo(w * 0.5 + craterW, craterY);
+                ctx.stroke();
+
+                const chamberX = w * 0.5;
+                const chamberY = h * 0.75;
+                const chamberR = isZero ? h * 0.12 : h * 0.16 + (p.pressure / 120) * 15;
+
+                if (isZero) {
+                    ctx.fillStyle = '#334155';
+                    ctx.beginPath();
+                    ctx.arc(chamberX, chamberY, chamberR, 0, Math.PI * 2);
+                    ctx.fill();
+
+                    ctx.fillStyle = '#1e293b';
+                    ctx.fillRect(chamberX - 10, craterY + 15, 20, chamberY - craterY - 15);
+                } else {
+                    const magmaGrad = ctx.createRadialGradient(chamberX, chamberY, 10, chamberX, chamberY, chamberR);
+                    magmaGrad.addColorStop(0, '#fef08a');
+                    magmaGrad.addColorStop(0.4, '#f97316');
+                    magmaGrad.addColorStop(0.8, '#dc2626');
+                    magmaGrad.addColorStop(1, '#7f1d1d');
+
+                    ctx.fillStyle = magmaGrad;
+                    ctx.beginPath();
+                    ctx.arc(chamberX, chamberY, chamberR, 0, Math.PI * 2);
+                    ctx.fill();
+
+                    const pipeW = 20 + (p.pressure / 120) * 15;
+                    const pipeGrad = ctx.createLinearGradient(chamberX - pipeW, 0, chamberX + pipeW, 0);
+                    pipeGrad.addColorStop(0, '#dc2626');
+                    pipeGrad.addColorStop(0.5, '#f97316');
+                    pipeGrad.addColorStop(1, '#dc2626');
+
+                    ctx.fillStyle = pipeGrad;
+                    ctx.fillRect(chamberX - pipeW / 2, craterY + 15, pipeW, chamberY - craterY - 15);
+
+                    ctx.strokeStyle = '#f97316';
+                    ctx.lineWidth = 2 + Math.sin(now * 0.005) * 1;
+                    for (let i = 0; i < 6; i++) {
+                        const crackY = craterY + 50 + i * 40;
+                        const side = i % 2 === 0 ? -1 : 1;
+                        ctx.beginPath();
+                        ctx.moveTo(chamberX + side * (pipeW / 2), crackY);
+                        ctx.lineTo(chamberX + side * (pipeW / 2 + 25 + Math.random() * 5), crackY + 10);
+                        ctx.stroke();
+                    }
+
+                    if (!isPaused && Math.random() < p.gas / 80) {
+                        particles.push({
+                            x: chamberX + (Math.random() - 0.5) * chamberR * 1.4,
+                            y: chamberY + Math.random() * chamberR * 0.5,
+                            vy: -1 - Math.random() * 2,
+                            size: 3 + Math.random() * 5,
+                            color: '#fef08a',
+                            type: 'magma_bubble'
+                        });
+                    }
+                }
+
+                particles.forEach((pt, idx) => {
+                    if (pt.type === 'magma_bubble') {
+                        pt.y += pt.vy;
+                        ctx.fillStyle = pt.color;
+                        ctx.beginPath();
+                        ctx.arc(pt.x, pt.y, pt.size, 0, Math.PI * 2);
+                        ctx.fill();
+
+                        if (pt.y < craterY + 30) {
+                            particles.splice(idx, 1);
+                        }
+                    }
+                });
+
+                ctx.font = 'bold 12px Inter';
+                ctx.fillStyle = isZero ? '#94a3b8' : '#fef08a';
+                ctx.fillText(isZero ? 'DAPUR MAGMA (PASIF / DORMANT)' : 'DAPUR MAGMA (Magma Chamber)', chamberX - 90, chamberY + 5);
+                ctx.fillStyle = isZero ? '#64748b' : '#f97316';
+                ctx.fillText('PIPA KEPUNDAN (Conduit)', chamberX + 25, craterY + 80);
+                ctx.fillStyle = '#38bdf8';
+                ctx.fillText('LAPISAN BATUAN (Strata)', 30, mountainBaseY + 30);
+                ctx.fillStyle = '#38bdf8';
+                ctx.fillText('KAWAH (Crater)', chamberX - 45, craterY - 10);
+
+            } else {
+                const isExplosive = (p.viscosity > 60 || p.exploding) && !isZero;
+
+                const skyGrad = ctx.createLinearGradient(0, 0, 0, h);
+                skyGrad.addColorStop(0, isExplosive ? '#1a0c0e' : '#0f172a');
+                skyGrad.addColorStop(0.6, isExplosive ? '#451a1a' : '#1e293b');
+                skyGrad.addColorStop(1, '#020617');
+                ctx.fillStyle = skyGrad;
+                ctx.fillRect(0, 0, w, h);
+
+                const peakX = w * 0.5;
+                const peakY = h * 0.35;
+                const baseLeft = w * 0.1;
+                const baseRight = w * 0.9;
+
+                ctx.fillStyle = isZero ? '#15803d' : '#18181b';
+                ctx.beginPath();
+                ctx.moveTo(baseLeft, h * 0.85);
+                ctx.quadraticCurveTo(w * 0.3, h * 0.55, peakX - 30, peakY);
+                ctx.lineTo(peakX + 30, peakY);
+                ctx.quadraticCurveTo(w * 0.7, h * 0.55, baseRight, h * 0.85);
+                ctx.lineTo(w, h);
+                ctx.lineTo(0, h);
+                ctx.closePath();
+                ctx.fill();
+
+                ctx.fillStyle = '#27272a';
+                ctx.beginPath();
+                ctx.ellipse(peakX, peakY + 5, 35, 10, 0, 0, Math.PI * 2);
+                ctx.fill();
+
+                if (!isPaused && !isZero) {
+                    const spawnRate = isExplosive ? 5 : 2;
+                    for (let i = 0; i < spawnRate; i++) {
+                        particles.push({
+                            x: peakX + (Math.random() - 0.5) * 30,
+                            y: peakY,
+                            vx: (Math.random() - 0.5) * (isExplosive ? 3.5 : 1.2),
+                            vy: -2 - Math.random() * (isExplosive ? 5 : 2),
+                            size: 15 + Math.random() * 20,
+                            alpha: 0.8,
+                            type: 'ash_cloud',
+                            color: isExplosive ? '#3f3f46' : '#71717a'
+                        });
+                    }
+
+                    if (isExplosive && Math.random() < 0.3) {
+                        particles.push({
+                            x: peakX,
+                            y: peakY,
+                            vx: (Math.random() - 0.5) * 8,
+                            vy: -8 - Math.random() * 8,
+                            gravity: 0.25,
+                            size: 4 + Math.random() * 6,
+                            type: 'lava_bomb'
+                        });
+                    }
+
+                    if (isExplosive && Math.random() < 0.4) {
+                        const side = Math.random() < 0.5 ? -1 : 1;
+                        particles.push({
+                            x: peakX + side * 25,
+                            y: peakY + 15,
+                            vx: side * (2 + Math.random() * 3),
+                            vy: 1.5 + Math.random() * 2,
+                            size: 20 + Math.random() * 25,
+                            alpha: 0.7,
+                            type: 'pyro_flow'
+                        });
+                    }
+                }
+
+                particles.forEach((pt, idx) => {
+                    if (pt.type === 'ash_cloud') {
+                        pt.x += pt.vx;
+                        pt.y += pt.vy;
+                        pt.size += 0.4;
+                        pt.alpha -= 0.003;
+
+                        ctx.save();
+                        ctx.globalAlpha = Math.max(0, pt.alpha);
+                        ctx.fillStyle = pt.color;
+                        ctx.beginPath();
+                        ctx.arc(pt.x, pt.y, pt.size, 0, Math.PI * 2);
+                        ctx.fill();
+                        ctx.restore();
+
+                        if (pt.alpha <= 0) particles.splice(idx, 1);
+                    } else if (pt.type === 'pyro_flow') {
+                        pt.x += pt.vx;
+                        pt.y += pt.vy;
+                        pt.size += 0.5;
+                        pt.alpha -= 0.005;
+
+                        ctx.save();
+                        ctx.globalAlpha = Math.max(0, pt.alpha);
+                        const flowGrad = ctx.createRadialGradient(pt.x, pt.y, 5, pt.x, pt.y, pt.size);
+                        flowGrad.addColorStop(0, '#ea580c');
+                        flowGrad.addColorStop(0.5, '#44403c');
+                        flowGrad.addColorStop(1, '#1c1917');
+                        ctx.fillStyle = flowGrad;
+                        ctx.beginPath();
+                        ctx.arc(pt.x, pt.y, pt.size, 0, Math.PI * 2);
+                        ctx.fill();
+                        ctx.restore();
+
+                        if (pt.alpha <= 0) particles.splice(idx, 1);
+                    } else if (pt.type === 'lava_bomb') {
+                        pt.x += pt.vx;
+                        pt.y += pt.vy;
+                        pt.vy += pt.gravity;
+
+                        ctx.fillStyle = '#f97316';
+                        ctx.shadowColor = '#ef4444';
+                        ctx.shadowBlur = 10;
+                        ctx.beginPath();
+                        ctx.arc(pt.x, pt.y, pt.size, 0, Math.PI * 2);
+                        ctx.fill();
+                        ctx.shadowBlur = 0;
+
+                        if (pt.y > h * 0.85) particles.splice(idx, 1);
+                    }
+                });
+
+                if (isExplosive && Math.random() < 0.15) {
+                    ctx.strokeStyle = '#60a5fa';
+                    ctx.lineWidth = 2;
+                    ctx.beginPath();
+                    let lx = peakX + (Math.random() - 0.5) * 60;
+                    let ly = peakY - 80 - Math.random() * 80;
+                    ctx.moveTo(lx, ly);
+                    for (let k = 0; k < 5; k++) {
+                        lx += (Math.random() - 0.5) * 20;
+                        ly += 15 + Math.random() * 15;
+                        ctx.lineTo(lx, ly);
+                    }
+                    ctx.stroke();
+                }
+
+                if (!isZero) {
+                    ctx.strokeStyle = '#ef4444';
+                    ctx.lineWidth = p.viscosity > 60 ? 12 : 6;
+                    ctx.lineCap = 'round';
+                    ctx.beginPath();
+                    ctx.moveTo(peakX - 10, peakY + 5);
+                    ctx.quadraticCurveTo(w * 0.38, h * 0.55, baseLeft + 100, h * 0.82);
+                    ctx.stroke();
+
+                    ctx.strokeStyle = '#fef08a';
+                    ctx.lineWidth = p.viscosity > 60 ? 5 : 2;
+                    ctx.stroke();
+                } else {
+                    ctx.font = 'bold 14px Inter';
+                    ctx.fillStyle = '#10b981';
+                    ctx.fillText('GUNUNG BERAPI PASIF (TIDAK ADA ERUPSI)', w * 0.3, peakY - 30);
+                }
+            }
+        }
+
+        // TORNADO SIMULATION RENDERER
+        function renderTornado(w, h, now) {
+            const p = state.tornado;
+            const isZero = p.windshear === 0 || p.tempdiff === 0;
+
+            if (currentPhase === 'cause') {
+                const skyGrad = ctx.createLinearGradient(0, 0, 0, h);
+                skyGrad.addColorStop(0, '#0f172a');
+                skyGrad.addColorStop(0.5, '#1e293b');
+                skyGrad.addColorStop(1, '#090d16');
+                ctx.fillStyle = skyGrad;
+                ctx.fillRect(0, 0, w, h);
+
+                ctx.fillStyle = '#1e293b';
+                ctx.beginPath();
+                ctx.ellipse(w * 0.5, h * 0.18, w * 0.45, h * 0.12, 0, 0, Math.PI * 2);
+                ctx.fill();
+
+                if (!isZero) {
+                    const warmX = w * 0.35 + Math.sin(now * 0.003) * 20;
+                    ctx.strokeStyle = '#ef4444';
+                    ctx.fillStyle = '#ef4444';
+                    ctx.lineWidth = 4;
+
+                    for (let i = 0; i < 3; i++) {
+                        const arrowX = warmX + (i - 1) * 35;
+                        const startY = h * 0.75;
+                        const endY = h * 0.35;
+
+                        ctx.beginPath();
+                        ctx.moveTo(arrowX, startY);
+                        ctx.quadraticCurveTo(arrowX + 25, (startY + endY) / 2, arrowX, endY);
+                        ctx.stroke();
+
+                        ctx.beginPath();
+                        ctx.arc(arrowX, endY, 6, 0, Math.PI * 2);
+                        ctx.fill();
+                    }
+
+                    const coldY = h * 0.45;
+                    ctx.strokeStyle = '#38bdf8';
+                    ctx.fillStyle = '#38bdf8';
+
+                    for (let i = 0; i < 3; i++) {
+                        const startX = w * 0.85;
+                        const endX = w * 0.45;
+                        const currentY = coldY + (i - 1) * 30;
+
+                        ctx.beginPath();
+                        ctx.moveTo(startX, currentY);
+                        ctx.lineTo(endX, currentY);
+                        ctx.stroke();
+
+                        ctx.beginPath();
+                        ctx.arc(endX, currentY, 6, 0, Math.PI * 2);
+                        ctx.fill();
+                    }
+
+                    const rollX = w * 0.5;
+                    const rollY = h * 0.55;
+                    const angle = (p.windshear / 250) * Math.PI * 0.4;
+
+                    ctx.save();
+                    ctx.translate(rollX, rollY);
+                    ctx.rotate(-angle);
+
+                    ctx.strokeStyle = 'rgba(56, 189, 248, 0.6)';
+                    ctx.lineWidth = 3;
+                    ctx.setLineDash([8, 6]);
+                    ctx.beginPath();
+                    ctx.ellipse(0, 0, 70, 25, 0, 0, Math.PI * 2);
+                    ctx.stroke();
+                    ctx.setLineDash([]);
+
+                    ctx.restore();
+                }
+
+                ctx.font = 'bold 13px Inter';
+                if (!isZero) {
+                    ctx.fillStyle = '#f87171';
+                    ctx.fillText('Udara Hangat & Lembap (Updraft)', w * 0.2, h * 0.82);
+                    ctx.fillStyle = '#38bdf8';
+                    ctx.fillText('Udara Dingin & Kering (Downdraft)', w * 0.62, h * 0.45 - 20);
+                    ctx.fillStyle = '#fef08a';
+                    ctx.fillText('Rotasi Geser Angin Horizontal -> Vertikal (Mesosiklon)', w * 0.3, h * 0.28);
+                } else {
+                    ctx.fillStyle = '#10b981';
+                    ctx.fillText('ATMOSFER STABIL (TANPA PERBEDAAN SUHU & GESER ANGIN)', w * 0.25, h * 0.5);
+                }
+
+            } else {
+                const scale = isZero ? 0 : (p.windshear / 250);
+
+                const skyGrad = ctx.createLinearGradient(0, 0, 0, h);
+                skyGrad.addColorStop(0, isZero ? '#0369a1' : '#021e2b');
+                skyGrad.addColorStop(0.5, isZero ? '#38bdf8' : '#073349');
+                skyGrad.addColorStop(1, isZero ? '#0284c7' : '#09151f');
+                ctx.fillStyle = skyGrad;
+                ctx.fillRect(0, 0, w, h);
+
+                const funnelX = w * (p.funnelX || 0.5);
+                const bottomY = h * 0.82;
+
+                if (!isZero) {
+                    ctx.fillStyle = '#0a212d';
+                    ctx.beginPath();
+                    ctx.ellipse(w * 0.5, h * 0.1, w * 0.6, h * 0.15, 0, 0, Math.PI * 2);
+                    ctx.fill();
+
+                    const topY = h * 0.15;
+                    const layers = 28;
+
+                    for (let i = 0; i < layers; i++) {
+                        const progress = i / layers;
+                        const currentY = topY + progress * (bottomY - topY);
+
+                        const topRadius = 90 * scale + 30;
+                        const bottomRadius = 15 * scale + 8;
+                        const radius = topRadius * (1 - progress * 0.85) + bottomRadius;
+
+                        const wobbleX = Math.sin(now * 0.004 + progress * 4) * (20 * progress);
+
+                        ctx.save();
+                        ctx.fillStyle = `rgba(148, 163, 184, ${0.25 + progress * 0.4})`;
+                        ctx.beginPath();
+                        ctx.ellipse(funnelX + wobbleX, currentY, radius, radius * 0.35, 0, 0, Math.PI * 2);
+                        ctx.fill();
+                        ctx.restore();
+                    }
+
+                    if (!isPaused) {
+                        for (let i = 0; i < Math.floor(scale * 8); i++) {
+                            const orbitAngle = Math.random() * Math.PI * 2;
+                            const dist = 10 + Math.random() * 60 * scale;
+                            particles.push({
+                                x: funnelX + Math.cos(orbitAngle) * dist,
+                                y: bottomY + Math.sin(orbitAngle) * 15,
+                                vx: -Math.sin(orbitAngle) * (3 + scale * 4),
+                                vy: -Math.random() * 3 - 1,
+                                size: 2 + Math.random() * 4,
+                                type: 'tornado_debris',
+                                life: 1.0
+                            });
+                        }
+                    }
+                }
+
+                particles.forEach((pt, idx) => {
+                    if (pt.type === 'tornado_debris') {
+                        pt.x += pt.vx;
+                        pt.y += pt.vy;
+                        pt.life -= 0.02;
+
+                        ctx.fillStyle = '#cbd5e1';
+                        ctx.beginPath();
+                        ctx.arc(pt.x, pt.y, pt.size, 0, Math.PI * 2);
+                        ctx.fill();
+
+                        if (pt.life <= 0) particles.splice(idx, 1);
+                    }
+                });
+
+                ctx.fillStyle = '#1e293b';
+                ctx.fillRect(0, bottomY, w, h - bottomY);
+
+                const treePositions = [w * 0.15, w * 0.3, w * 0.72, w * 0.88];
+                treePositions.forEach((tx) => {
+                    const distToFunnel = Math.abs(tx - funnelX);
+                    const windForce = isZero ? 0 : Math.max(0, 1 - distToFunnel / (w * 0.4)) * scale;
+
+                    ctx.strokeStyle = '#78350f';
+                    ctx.lineWidth = 6;
+                    ctx.beginPath();
+                    ctx.moveTo(tx, bottomY);
+                    ctx.quadraticCurveTo(tx + windForce * 35, bottomY - 20, tx + windForce * 50, bottomY - 45);
+                    ctx.stroke();
+
+                    ctx.fillStyle = windForce > 0.8 ? '#334155' : '#15803d';
+                    ctx.beginPath();
+                    ctx.arc(tx + windForce * 50, bottomY - 50, 18, 0, Math.PI * 2);
+                    ctx.fill();
+                });
+
+                const houseX = w * 0.25;
+                ctx.fillStyle = '#475569';
+                ctx.fillRect(houseX, bottomY - 30, 40, 30);
+
+                ctx.fillStyle = '#dc2626';
+                ctx.beginPath();
+                ctx.moveTo(houseX - 5, bottomY - 30);
+                ctx.lineTo(houseX + 20, bottomY - 50);
+                ctx.lineTo(houseX + 45, bottomY - 30);
+                ctx.closePath();
+                ctx.fill();
+
+                if (isZero) {
+                    ctx.font = 'bold 14px Inter';
+                    ctx.fillStyle = '#10b981';
+                    ctx.fillText('KONDISI ANGIN TENANG (TIDAK ADA PUTING BELIUNG)', w * 0.28, h * 0.3);
+                }
+            }
+        }
+
+        // EARTHQUAKE SIMULATION RENDERER
+        function renderQuake(w, h, now) {
+            const p = state.quake;
+            const isZero = p.magnitude === 0;
+
+            if (currentPhase === 'cause') {
+                const skyGrad = ctx.createLinearGradient(0, 0, 0, h * 0.35);
+                skyGrad.addColorStop(0, '#080d1a');
+                skyGrad.addColorStop(1, '#1e293b');
+                ctx.fillStyle = skyGrad;
+                ctx.fillRect(0, 0, w, h * 0.35);
+
+                const surfaceY = h * 0.35;
+                const faultCenterX = w * 0.48;
+
+                const hypoX = faultCenterX + (p.depth / 120) * (w * 0.12);
+                const hypoY = surfaceY + 45 + (p.depth / 120) * (h * 0.42);
+
+                ctx.fillStyle = '#0f172a';
+                ctx.beginPath();
+                ctx.moveTo(0, surfaceY + 25);
+                ctx.lineTo(w * 0.38, surfaceY + 25);
+                ctx.lineTo(w * 0.75, h);
+                ctx.lineTo(0, h);
+                ctx.closePath();
+                ctx.fill();
+
+                ctx.strokeStyle = '#0284c7';
+                ctx.lineWidth = 6;
+                ctx.beginPath();
+                ctx.moveTo(0, surfaceY + 25);
+                ctx.lineTo(w * 0.38, surfaceY + 25);
+                ctx.lineTo(w * 0.75, h);
+                ctx.stroke();
+
+                ctx.fillStyle = '#1e293b';
+                ctx.beginPath();
+                ctx.moveTo(w * 0.38, surfaceY);
+                ctx.lineTo(w, surfaceY);
+                ctx.lineTo(w, h);
+                ctx.lineTo(w * 0.75, h);
+                ctx.closePath();
+                ctx.fill();
+
+                ctx.fillStyle = '#334155';
+                ctx.fillRect(w * 0.38, surfaceY, w * 0.62, 30);
+
+                ctx.strokeStyle = isZero ? '#475569' : '#ef4444';
+                ctx.lineWidth = 3 + (isZero ? 0 : Math.sin(now * 0.006) * 1.5);
+                ctx.beginPath();
+                ctx.moveTo(w * 0.38, surfaceY + 25);
+                ctx.lineTo(w * 0.75, h);
+                ctx.stroke();
+
+                if (!isPaused && !isZero) {
+                    p.pWave = (p.pWave + 2.2) % 220;
+                    p.sWave = (p.sWave + 1.3) % 220;
+
+                    ctx.strokeStyle = 'rgba(34, 211, 238, 0.75)';
+                    ctx.lineWidth = 2.5;
+                    ctx.beginPath();
+                    ctx.arc(hypoX, hypoY, p.pWave, 0, Math.PI * 2);
+                    ctx.stroke();
+
+                    ctx.strokeStyle = 'rgba(249, 115, 22, 0.85)';
+                    ctx.lineWidth = 3.5;
+                    ctx.beginPath();
+                    ctx.arc(hypoX, hypoY, p.sWave, 0, Math.PI * 2);
+                    ctx.stroke();
+                }
+
+                ctx.strokeStyle = '#a855f7';
+                ctx.lineWidth = 1.5;
+                ctx.setLineDash([5, 5]);
+                ctx.beginPath();
+                ctx.moveTo(hypoX, hypoY);
+                ctx.lineTo(hypoX, surfaceY);
+                ctx.stroke();
+                ctx.setLineDash([]);
+
+                ctx.fillStyle = '#f43f5e';
+                ctx.beginPath();
+                ctx.arc(hypoX, surfaceY, 6, 0, Math.PI * 2);
+                ctx.fill();
+
+                ctx.fillStyle = '#a855f7';
+                ctx.beginPath();
+                ctx.arc(hypoX, hypoY, 9, 0, Math.PI * 2);
+                ctx.fill();
+
+                ctx.font = 'bold 12px Inter';
+                ctx.fillStyle = '#38bdf8';
+                ctx.fillText('LEMPENG SAMUDRA (Subduksi Tektonik)', 20, surfaceY + 65);
+                ctx.fillStyle = '#cbd5e1';
+                ctx.fillText('LEMPENG BENUA (Overriding Crust)', w * 0.6, surfaceY + 20);
+                
+                ctx.fillStyle = '#f43f5e';
+                ctx.fillText('EPISENTRUM', hypoX - 45, surfaceY - 12);
+
+                ctx.fillStyle = '#c084fc';
+                ctx.fillText(`HIPOSENTRUM (Kedalaman: ${p.depth} km)`, hypoX + 16, hypoY + 4);
+
+                if (isZero) {
+                    ctx.fillStyle = '#10b981';
+                    ctx.fillText('LEMPENG STABIL (TANPA PELEPASAN ENERGI / MAGNITUDO 0 SR)', 20, surfaceY - 15);
+                }
+
+            } else {
+                const groundY = h * 0.62;
+                const epiX = w * 0.5;
+                const quakeMag = p.magnitude;
+                
+                const depthFactor = Math.max(0.2, 1 - (p.depth / 150));
+                const shakeIntensity = isZero ? 0 : (quakeMag / 9.5) * depthFactor * 16;
+
+                const shakeX = (Math.random() - 0.5) * shakeIntensity;
+                const shakeY = (Math.random() - 0.5) * shakeIntensity;
+
+                ctx.save();
+                ctx.translate(shakeX, shakeY);
+
+                const skyGrad = ctx.createLinearGradient(0, 0, 0, groundY);
+                skyGrad.addColorStop(0, '#020617');
+                skyGrad.addColorStop(1, '#0f172a');
+                ctx.fillStyle = skyGrad;
+                ctx.fillRect(0, 0, w, groundY);
+
+                const hypoY = groundY + 25 + (p.depth / 120) * (h * 0.28);
+
+                if (!isPaused && !isZero) {
+                    p.pWave = (p.pWave + 3.5 + quakeMag * 0.4) % (w * 0.7);
+                    p.sWave = (p.sWave + 2.0 + quakeMag * 0.25) % (w * 0.7);
+
+                    ctx.strokeStyle = 'rgba(6, 182, 212, 0.7)';
+                    ctx.lineWidth = 3;
+                    ctx.beginPath();
+                    ctx.arc(epiX, hypoY, p.pWave, 0, Math.PI * 2);
+                    ctx.stroke();
+
+                    ctx.strokeStyle = 'rgba(239, 68, 68, 0.85)';
+                    ctx.lineWidth = 4.5;
+                    ctx.beginPath();
+                    ctx.arc(epiX, hypoY, p.sWave, 0, Math.PI * 2);
+                    ctx.stroke();
+                }
+
+                ctx.fillStyle = '#1e293b';
+                ctx.fillRect(0, groundY, w, h - groundY);
+
+                ctx.fillStyle = '#0f172a';
+                ctx.fillRect(0, groundY + 40, w, h - groundY - 40);
+
+                ctx.strokeStyle = '#475569';
+                ctx.lineWidth = 3;
+                ctx.beginPath();
+                ctx.moveTo(epiX - 40, groundY);
+                ctx.lineTo(epiX + 60, h);
+                ctx.stroke();
+
+                ctx.fillStyle = '#a855f7';
+                ctx.beginPath();
+                ctx.arc(epiX, hypoY, 8, 0, Math.PI * 2);
+                ctx.fill();
+
+                const buildings = [
+                    { x: w * 0.12, width: 45, height: 110, color: '#334155' },
+                    { x: w * 0.28, width: 60, height: 170, color: '#475569' },
+                    { x: w * 0.58, width: 52, height: 140, color: '#334155' },
+                    { x: w * 0.78, width: 42, height: 95, color: '#475569' }
+                ];
+
+                buildings.forEach((b) => {
+                    const swayAngle = isZero ? 0 : Math.sin(now * 0.012 + b.height) * (shakeIntensity * 0.8);
+
+                    ctx.save();
+                    ctx.fillStyle = b.color;
+                    ctx.beginPath();
+                    ctx.moveTo(b.x, groundY);
+                    ctx.lineTo(b.x + swayAngle, groundY - b.height);
+                    ctx.lineTo(b.x + b.width + swayAngle, groundY - b.height);
+                    ctx.lineTo(b.x + b.width, groundY);
+                    ctx.closePath();
+                    ctx.fill();
+
+                    const windowCols = 2;
+                    const windowRows = Math.floor(b.height / 25);
+                    for (let r = 0; r < windowRows; r++) {
+                        for (let c = 0; c < windowCols; c++) {
+                            const wx = b.x + 8 + c * (b.width / 2 - 4) + swayAngle * (1 - r / windowRows);
+                            const wy = groundY - b.height + 12 + r * 22;
+
+                            ctx.fillStyle = '#fef08a';
+                            ctx.fillRect(wx, wy, b.width / 2 - 10, 12);
+                        }
+                    }
+
+                    ctx.restore();
+                });
+
+                ctx.restore();
+
+                if (isZero) {
+                    ctx.font = 'bold 14px Inter';
+                    ctx.fillStyle = '#10b981';
+                    ctx.fillText('KONDISI GEMPA PASIF (TIDAK ADA GUNCANGAN / 0 SR)', w * 0.25, groundY - 80);
+                }
+            }
+        }
+
+        // TSUNAMI SIMULATION RENDERER
+        function renderTsunami(w, h, now) {
+            const p = state.tsunami;
+            const isZero = p.displacement === 0;
+
+            if (currentPhase === 'cause') {
+                const skyGrad = ctx.createLinearGradient(0, 0, 0, h * 0.4);
+                skyGrad.addColorStop(0, '#0284c7');
+                skyGrad.addColorStop(1, '#38bdf8');
+                ctx.fillStyle = skyGrad;
+                ctx.fillRect(0, 0, w, h * 0.4);
+
+                const waterSurfaceY = h * 0.35;
+                const seabedY = h * 0.72;
+                const faultX = w * 0.45;
+                const shiftY = isZero ? 0 : (p.displacement / 15) * 28;
+
+                ctx.fillStyle = '#0f172a';
+                ctx.fillRect(0, seabedY, w, h - seabedY);
+
+                ctx.fillStyle = '#334155';
+                ctx.beginPath();
+                ctx.moveTo(0, seabedY);
+                ctx.lineTo(faultX, seabedY - shiftY);
+                ctx.lineTo(faultX, h);
+                ctx.lineTo(0, h);
+                ctx.closePath();
+                ctx.fill();
+
+                ctx.fillStyle = '#1e293b';
+                ctx.beginPath();
+                ctx.moveTo(faultX, seabedY);
+                ctx.lineTo(w, seabedY);
+                ctx.lineTo(w, h);
+                ctx.lineTo(faultX, h);
+                ctx.closePath();
+                ctx.fill();
+
+                if (!isZero) {
+                    ctx.strokeStyle = '#ef4444';
+                    ctx.lineWidth = 3;
+                    ctx.beginPath();
+                    ctx.moveTo(faultX, seabedY - shiftY - 15);
+                    ctx.lineTo(faultX, h);
+                    ctx.stroke();
+                }
+
+                ctx.fillStyle = 'rgba(14, 116, 144, 0.85)';
+                ctx.beginPath();
+                ctx.moveTo(0, waterSurfaceY);
+
+                for (let x = 0; x <= w; x += 5) {
+                    let y = waterSurfaceY;
+                    const distFromFault = Math.abs(x - faultX);
+                    
+                    if (!isZero && distFromFault < 130) {
+                        const mound = Math.cos((distFromFault / 130) * (Math.PI / 2)) * shiftY * 0.95;
+                        y -= mound;
+                    }
+                    
+                    y += Math.sin((x * 0.05) - (now * 0.003)) * (isZero ? 1.5 : 3);
+                    ctx.lineTo(x, y);
+                }
+
+                ctx.lineTo(w, seabedY);
+                ctx.lineTo(faultX, seabedY);
+                ctx.lineTo(faultX, seabedY - shiftY);
+                ctx.lineTo(0, seabedY);
+                ctx.closePath();
+                ctx.fill();
+
+                ctx.font = 'bold 12px Inter';
+                if (!isZero) {
+                    ctx.fillStyle = '#fef08a';
+                    ctx.fillText('DISLOKASI DASAR LAUT (Patahan Tektonik)', faultX - 110, seabedY + 50);
+                    ctx.fillStyle = '#38bdf8';
+                    ctx.fillText('KOLOM AIR TERANGKAT (Mound Inisiasi Tsunami)', faultX - 120, waterSurfaceY - 18);
+                } else {
+                    ctx.fillStyle = '#10b981';
+                    ctx.fillText('DASAR LAUT STABIL (TIDAK ADA DISLOKASI / DISPLACEMENT 0M)', faultX - 160, waterSurfaceY - 18);
+                }
+
+            } else {
+                const skyGrad = ctx.createLinearGradient(0, 0, 0, h * 0.5);
+                skyGrad.addColorStop(0, '#0284c7');
+                skyGrad.addColorStop(0.7, '#075985');
+                skyGrad.addColorStop(1, '#0f172a');
+                ctx.fillStyle = skyGrad;
+                ctx.fillRect(0, 0, w, h * 0.5);
+
+                const coastX = w * 0.65;
+                const deepSeaY = h * 0.74;
+                const shoreY = h * 0.62;
+                const calmWaterY = shoreY + 4;
+
+                const seaBedGrad = ctx.createLinearGradient(0, deepSeaY, coastX, shoreY);
+                seaBedGrad.addColorStop(0, '#0f172a');
+                seaBedGrad.addColorStop(0.6, '#1e293b');
+                seaBedGrad.addColorStop(1, '#334155');
+
+                ctx.fillStyle = seaBedGrad;
+                ctx.beginPath();
+                ctx.moveTo(0, deepSeaY);
+                ctx.lineTo(w * 0.35, deepSeaY);
+                ctx.quadraticCurveTo(w * 0.52, deepSeaY, coastX, shoreY);
+                ctx.lineTo(w, shoreY - 20);
+                ctx.lineTo(w, h);
+                ctx.lineTo(0, h);
+                ctx.closePath();
+                ctx.fill();
+
+                const sandGrad = ctx.createLinearGradient(coastX - 80, shoreY + 25, coastX + 80, shoreY - 15);
+                sandGrad.addColorStop(0, '#92400e');
+                sandGrad.addColorStop(0.5, '#d97706');
+                sandGrad.addColorStop(1, '#f59e0b');
+
+                ctx.fillStyle = sandGrad;
+                ctx.beginPath();
+                ctx.moveTo(coastX - 80, shoreY + 25);
+                ctx.quadraticCurveTo(coastX - 20, shoreY + 8, coastX, shoreY);
+                ctx.lineTo(coastX + 110, shoreY - 18);
+                ctx.lineTo(coastX + 110, shoreY + 45);
+                ctx.lineTo(coastX - 80, shoreY + 55);
+                ctx.closePath();
+                ctx.fill();
+
+                ctx.fillStyle = '#15803d';
+                ctx.beginPath();
+                ctx.moveTo(coastX + 30, shoreY - 6);
+                ctx.lineTo(w, shoreY - 20);
+                ctx.lineTo(w, shoreY - 8);
+                ctx.lineTo(coastX + 30, shoreY + 6);
+                ctx.closePath();
+                ctx.fill();
+
+                const bldgX = coastX + 70;
+                ctx.fillStyle = '#475569';
+                ctx.fillRect(bldgX, shoreY - 52, 28, 36);
+                ctx.fillRect(bldgX + 38, shoreY - 68, 36, 52);
+
+                const treeX = coastX + 35;
+                ctx.strokeStyle = '#78350f';
+                ctx.lineWidth = 4;
+                ctx.beginPath();
+                ctx.moveTo(treeX, shoreY - 5);
+                ctx.quadraticCurveTo(treeX - 10, shoreY - 25, treeX - 5, shoreY - 45);
+                ctx.stroke();
+
+                ctx.fillStyle = '#16a34a';
+                ctx.beginPath();
+                ctx.arc(treeX - 5, shoreY - 48, 14, 0, Math.PI * 2);
+                ctx.fill();
+
+                if (!isPaused && !isZero) {
+                    const depthFactor = p.depth / 3500;
+                    const waveSpeed = 1.4 + depthFactor * 1.6;
+                    p.waveX = (p.waveX + waveSpeed) % (w + 220);
+                }
+
+                const baseWaveH = isZero ? 0 : (p.displacement / 15) * 55;
+                const currentWaveX = p.waveX;
+
+                const waterGrad = ctx.createLinearGradient(0, calmWaterY - 60, 0, h);
+                waterGrad.addColorStop(0, 'rgba(6, 182, 212, 0.88)');
+                waterGrad.addColorStop(0.35, 'rgba(14, 116, 144, 0.92)');
+                waterGrad.addColorStop(1, 'rgba(15, 23, 42, 0.96)');
+
+                ctx.fillStyle = waterGrad;
+                ctx.beginPath();
+                ctx.moveTo(0, h);
+                ctx.lineTo(0, calmWaterY);
+
+                for (let x = 0; x <= w; x += 4) {
+                    let seabedYAtX = deepSeaY;
+                    if (x > w * 0.35 && x <= coastX) {
+                        const t = (x - w * 0.35) / (coastX - w * 0.35);
+                        seabedYAtX = deepSeaY + t * (shoreY - deepSeaY);
+                    } else if (x > coastX) {
+                        seabedYAtX = shoreY - 20 + ((x - coastX) / (w - coastX)) * (-5);
+                    }
+
+                    let waterY = calmWaterY;
+                    if (!isZero) {
+                        const dist = x - currentWaveX;
+                        let shoalingFactor = 0.35;
+                        if (x > w * 0.3) {
+                            const progress = Math.min(1, (x - w * 0.3) / (coastX - w * 0.3));
+                            shoalingFactor = 0.35 + progress * 1.35;
+                        }
+
+                        const waveWidth = 110 + shoalingFactor * 20;
+
+                        if (Math.abs(dist) < waveWidth) {
+                            const cosVal = Math.cos((dist / waveWidth) * (Math.PI / 2));
+                            const crestHeight = cosVal * baseWaveH * shoalingFactor;
+                            waterY -= crestHeight;
+                        }
+                    } else {
+                        waterY += Math.sin((x * 0.04) + (now * 0.002)) * 1.5;
+                    }
+
+                    waterY = Math.min(waterY, seabedYAtX);
+                    ctx.lineTo(x, waterY);
+                }
+
+                ctx.lineTo(w, h);
+                ctx.closePath();
+                ctx.fill();
+
+                if (isZero) {
+                    ctx.font = 'bold 14px Inter';
+                    ctx.fillStyle = '#10b981';
+                    ctx.fillText('KONDISI AIR LAUT TENANG (TIDAK ADA GELOMBANG TSUNAMI)', w * 0.22, shoreY - 80);
+                }
+            }
+        }
+
+        // DYNAMIC POSITIONAL SENSOR ENGINE
+        function getSensorData(s) {
+            const w = canvas.width / window.devicePixelRatio;
+            const h = canvas.height / window.devicePixelRatio;
+
+            if (s.type === 'temp') {
+                if (currentDisaster === 'volcano') {
+                    if (state.volcano.pressure === 0 || state.volcano.temp === 0) {
+                        return { val: 28, unit: '°C', label: 'Suhu Normal' };
+                    }
+                    if (currentPhase === 'cause') {
+                        const chamberX = w * 0.5;
+                        const chamberY = h * 0.75;
+                        const distToChamber = Math.hypot(s.x - chamberX, s.y - chamberY);
+                        let baseT = state.volcano.temp;
+                        if (distToChamber < 120) {
+                            baseT = baseT * (1 - distToChamber / 200);
+                        } else {
+                            baseT = 30 + (s.y / h) * 120;
+                        }
+                        return { val: Math.round(Math.max(25, baseT)), unit: '°C', label: 'Suhu Batuan/Magma' };
+                    } else {
+                        const peakX = w * 0.5;
+                        const peakY = h * 0.35;
+                        const distToPeak = Math.hypot(s.x - peakX, s.y - peakY);
+                        let baseT = 28;
+                        if (distToPeak < 80) baseT = state.volcano.temp * 0.8;
+                        return { val: Math.round(baseT), unit: '°C', label: 'Suhu Permukaan' };
+                    }
+                } else if (currentDisaster === 'tornado') {
+                    const normY = s.y / h;
+                    let baseT = (1 - normY) * (-15) + normY * (28 + state.tornado.tempdiff * 0.5);
+                    return { val: Math.round(baseT), unit: '°C', label: 'Suhu Udara Elevasi' };
+                } else if (currentDisaster === 'quake') {
+                    const normY = s.y / h;
+                    let baseT = 24 + normY * 160;
+                    return { val: Math.round(baseT), unit: '°C', label: 'Suhu Kerak Bumi' };
+                } else {
+                    const normY = s.y / h;
+                    let baseT = normY < 0.35 ? 28 : Math.max(4, 28 - (normY - 0.35) * 40);
+                    return { val: Math.round(baseT), unit: '°C', label: 'Suhu Air Laut' };
+                }
+            } 
+            else if (s.type === 'seismo') {
+                if (currentDisaster === 'quake') {
+                    if (state.quake.magnitude === 0) return { val: '0.00 g', unit: 'PGA', label: 'Percepatan Tanah' };
+                    const epiX = w * 0.5;
+                    const surfaceY = h * 0.35;
+                    const hypoY = surfaceY + 45 + (state.quake.depth / 120) * (h * 0.42);
+                    const dist = Math.hypot(s.x - epiX, s.y - hypoY);
+                    
+                    const depthFactor = Math.max(0.15, 1 - (state.quake.depth / 200));
+                    const atten = 100 / (dist + 50);
+                    const rawPga = Math.pow(10, state.quake.magnitude * 0.22 - 1.2) * atten * depthFactor * 1.5;
+                    const pga = Math.min(2.5, rawPga).toFixed(2);
+                    return { val: `${pga} g`, unit: 'PGA', label: 'Percepatan Tanah' };
+                } else if (currentDisaster === 'volcano') {
+                    if (state.volcano.pressure === 0) return { val: '0.00 g', unit: 'Tremor', label: 'Getaran Vulkanik' };
+                    const tremor = (state.volcano.pressure / 150) * (state.volcano.gas / 100) * 0.8;
+                    return { val: Math.max(0.01, tremor).toFixed(2) + ' g', unit: 'Tremor', label: 'Getaran Vulkanik' };
+                } else {
+                    return { val: `0.00 g`, unit: 'Seismik', label: 'Getaran Latar' };
+                }
+            } 
+            else if (s.type === 'anemo') {
+                if (currentDisaster === 'tornado') {
+                    if (state.tornado.windshear === 0 || state.tornado.tempdiff === 0) return { val: 5, unit: 'km/h', label: 'Kecepatan Angin' };
+                    const funnelX = w * (state.tornado.funnelX || 0.5);
+                    const distToAxis = Math.abs(s.x - funnelX);
+                    const maxWind = state.tornado.windshear * 1.8;
+                    const distFactor = Math.exp(-distToAxis / 130);
+                    const currentWind = Math.max(15, maxWind * distFactor);
+                    return { val: Math.round(currentWind), unit: 'km/h', label: 'Kecepatan Angin' };
+                } else {
+                    return { val: Math.round(10), unit: 'km/h', label: 'Angin Permukaan' };
+                }
+            } 
+            else if (s.type === 'press') {
+                if (currentDisaster === 'volcano') {
+                    const depthFactor = (s.y / h);
+                    const press = (state.volcano.pressure * depthFactor * 1.2).toFixed(1);
+                    return { val: `${press}`, unit: 'Bar', label: 'Tekanan Magma' };
+                } else if (currentDisaster === 'tornado') {
+                    if (state.tornado.windshear === 0) return { val: '1013', unit: 'hPa', label: 'Tekanan Udara' };
+                    const funnelX = w * (state.tornado.funnelX || 0.5);
+                    const distToAxis = Math.abs(s.x - funnelX);
+                    const coreDrop = Math.exp(-distToAxis / 100) * 120;
+                    const hpa = Math.round(1013 - coreDrop);
+                    return { val: `${hpa}`, unit: 'hPa', label: 'Tekanan Udara Core' };
+                } else if (currentDisaster === 'tsunami') {
+                    const hydroHead = Math.max(0.1, (s.y / h) * (state.tsunami.depth / 1000) * 0.1);
+                    return { val: `${(1.0 + hydroHead).toFixed(2)}`, unit: 'Bar', label: 'Tekanan Hidrostatik' };
+                } else {
+                    return { val: `1.01`, unit: 'Bar', label: 'Tekanan Atmosfer' };
+                }
+            }
+
+            return { val: '0', unit: '', label: 'Sensor' };
+        }
+
+        // Mouse & Touch Interaction Handlers
+        function selectSensorTool(type) {
+            document.querySelectorAll('.sensor-btn').forEach(b => b.classList.remove('active'));
+            if (activeSensorTool === type) {
+                activeSensorTool = null;
+                document.getElementById('sensor-hint-toast').classList.add('hidden');
+            } else {
+                activeSensorTool = type;
+                const activeBtn = document.getElementById(`sensor-btn-${type}`);
+                if (activeBtn) activeBtn.classList.add('active');
+                document.getElementById('sensor-hint-toast').classList.remove('hidden');
+            }
+        }
+
+        function dragSensor(ev, type) {
+            ev.dataTransfer.setData("text/plain", type);
+        }
+
+        function allowDropSensor(ev) {
+            ev.preventDefault();
+        }
+
+        function dropSensor(ev) {
+            ev.preventDefault();
+            const rect = canvas.getBoundingClientRect();
+            const x = ev.clientX - rect.left;
+            const y = ev.clientY - rect.top;
+
+            const type = ev.dataTransfer.getData("text/plain");
+            if (type) {
+                addSensorAt(type, x, y);
+            }
+        }
+
+        function addSensorAt(type, x, y) {
+            sensors.push({
+                id: Date.now() + Math.floor(Math.random() * 1000),
+                type: type,
+                x: Math.max(20, Math.min(x, (canvas.width / window.devicePixelRatio) - 20)),
+                y: Math.max(20, Math.min(y, (canvas.height / window.devicePixelRatio) - 20))
+            });
+            renderSensorReadoutsStructure();
+            checkMissions();
+        }
+
+        function removeSensor(id) {
+            sensors = sensors.filter(s => s.id !== id);
+            renderSensorReadoutsStructure();
+        }
+
+        function clearSensors() {
+            sensors = [];
+            renderSensorReadoutsStructure();
+        }
+
+        function getCanvasCoords(e) {
+            const rect = canvas.getBoundingClientRect();
+            const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+            const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+            return {
+                x: clientX - rect.left,
+                y: clientY - rect.top
+            };
+        }
+
+        function handlePointerDown(e) {
+            const coords = getCanvasCoords(e);
+            
+            const hitSensor = sensors.find(s => Math.hypot(s.x - coords.x, s.y - coords.y) < 22);
+            if (hitSensor) {
+                if (e.button === 2) {
+                    removeSensor(hitSensor.id);
+                    return;
+                }
+                draggingSensor = hitSensor;
+                dragOffset = { x: coords.x - hitSensor.x, y: coords.y - hitSensor.y };
+                return;
+            }
+
+            if (activeSensorTool) {
+                addSensorAt(activeSensorTool, coords.x, coords.y);
+            }
+        }
+
+        function handlePointerMove(e) {
+            const coords = getCanvasCoords(e);
+
+            if (draggingSensor) {
+                const w = canvas.width / window.devicePixelRatio;
+                const h = canvas.height / window.devicePixelRatio;
+                draggingSensor.x = Math.max(20, Math.min(coords.x - dragOffset.x, w - 20));
+                draggingSensor.y = Math.max(20, Math.min(coords.y - dragOffset.y, h - 20));
+                return;
+            }
+
+            const hovering = sensors.some(s => Math.hypot(s.x - coords.x, s.y - coords.y) < 22);
+            canvas.style.cursor = draggingSensor ? 'grabbing' : hovering ? 'grab' : activeSensorTool ? 'crosshair' : 'default';
+        }
+
+        function handlePointerUp() {
+            draggingSensor = null;
+        }
+
+        canvas.addEventListener('mousedown', handlePointerDown);
+        canvas.addEventListener('mousemove', handlePointerMove);
+        window.addEventListener('mouseup', handlePointerUp);
+
+        canvas.addEventListener('touchstart', (e) => { handlePointerDown(e); e.preventDefault(); }, { passive: false });
+        canvas.addEventListener('touchmove', (e) => { handlePointerMove(e); e.preventDefault(); }, { passive: false });
+        window.addEventListener('touchend', handlePointerUp);
+        canvas.addEventListener('contextmenu', (e) => e.preventDefault());
+
+        function renderSensorsOnCanvas() {
+            sensors.forEach((s) => {
+                const data = getSensorData(s);
+                const colorMap = {
+                    temp: '#f97316',
+                    seismo: '#c084fc',
+                    anemo: '#38bdf8',
+                    press: '#fef08a'
+                };
+                const color = colorMap[s.type] || '#ffffff';
+
+                ctx.save();
+                ctx.strokeStyle = color;
+                ctx.lineWidth = 2;
+                ctx.fillStyle = '#0f172a';
+
+                ctx.beginPath();
+                ctx.arc(s.x, s.y, 14, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.stroke();
+
+                ctx.font = 'bold 10px Inter';
+                ctx.fillStyle = '#ffffff';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                const label = s.type === 'temp' ? '°C' : s.type === 'seismo' ? 'HZ' : s.type === 'anemo' ? 'm/s' : 'BAR';
+                ctx.fillText(label, s.x, s.y);
+
+                const badgeText = `${data.val} ${data.unit}`;
+                ctx.font = 'bold 11px Inter';
+                const textWidth = ctx.measureText(badgeText).width;
+                const badgeW = textWidth + 14;
+                const badgeH = 20;
+                const badgeX = s.x - badgeW / 2;
+                const badgeY = s.y - 28;
+
+                ctx.fillStyle = 'rgba(15, 23, 42, 0.9)';
+                ctx.strokeStyle = color;
+                ctx.lineWidth = 1;
+                
+                ctx.beginPath();
+                ctx.roundRect(badgeX, badgeY, badgeW, badgeH, 6);
+                ctx.fill();
+                ctx.stroke();
+
+                ctx.fillStyle = color;
+                ctx.fillText(badgeText, s.x, badgeY + badgeH / 2 + 1);
+
+                ctx.restore();
+            });
+        }
+
+        function renderSensorReadoutsStructure() {
+            const list = document.getElementById('sensor-readout-list');
+            if (!list) return;
+
+            document.getElementById('tele-sensors-count').innerText = sensors.length;
+
+            if (sensors.length === 0) {
+                list.innerHTML = `<div class="text-slate-500 italic text-[11px]">Belum ada sensor yang dipasang di canvas.</div>`;
+                return;
+            }
+
+            list.innerHTML = sensors.map((s, idx) => {
+                const colorClass = s.type === 'temp' ? 'text-orange-400' : s.type === 'seismo' ? 'text-purple-400' : s.type === 'anemo' ? 'text-sky-400' : 'text-yellow-400';
+                return `
+                    <div class="flex items-center justify-between p-2 bg-slate-900/90 rounded-lg border border-slate-800 text-xs">
+                        <div class="flex items-center gap-2">
+                            <span class="w-5 h-5 rounded bg-slate-800 flex items-center justify-center font-mono font-bold text-[10px] text-slate-400">#${idx+1}</span>
+                            <div>
+                                <div class="font-semibold text-slate-200 capitalize text-[11px]">${s.type}</div>
+                                <div id="sensor-sub-${s.id}" class="text-[9px] text-slate-500">Membaca data...</div>
+                            </div>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <span id="sensor-val-${s.id}" class="font-mono font-bold ${colorClass} text-xs">--</span>
+                            <button onclick="removeSensor(${s.id})" class="p-1 hover:bg-rose-950 hover:text-rose-400 text-slate-500 rounded transition" title="Hapus Sensor">
+                                ✕
+                            </button>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function updateSensorReadoutValues() {
+            sensors.forEach(s => {
+                const data = getSensorData(s);
+                const valEl = document.getElementById(`sensor-val-${s.id}`);
+                const subEl = document.getElementById(`sensor-sub-${s.id}`);
+                if (valEl) valEl.innerText = `${data.val} ${data.unit}`;
+                if (subEl) subEl.innerText = data.label;
+            });
+        }
+
+        // Student Missions & Quiz Engine
+        const missions = { m1: false, m2: false, m3: false };
+
+        function checkMissions() {
+            if (currentDisaster === 'volcano' && currentPhase === 'impact' && state.volcano.viscosity > 80 && state.volcano.gas > 80 && state.volcano.pressure > 85) {
+                missions.m1 = true;
+                const m1 = document.getElementById('mission-status-1');
+                if (m1) {
+                    m1.innerText = "SELESAI";
+                    m1.className = "text-xs px-2.5 py-1 rounded bg-emerald-900/80 text-emerald-400 font-mono font-bold border border-emerald-700";
+                }
+            }
+
+            if (currentDisaster === 'tornado' && currentPhase === 'impact' && state.tornado.tempdiff > 35 && state.tornado.windshear > 180) {
+                missions.m2 = true;
+                const m2 = document.getElementById('mission-status-2');
+                if (m2) {
+                    m2.innerText = "SELESAI";
+                    m2.className = "text-xs px-2.5 py-1 rounded bg-emerald-900/80 text-emerald-400 font-mono font-bold border border-emerald-700";
+                }
+            }
+
+            if (currentDisaster === 'quake' && state.quake.magnitude > 7.0 && sensors.some(s => s.type === 'seismo')) {
+                missions.m3 = true;
+                const m3 = document.getElementById('mission-status-3');
+                if (m3) {
+                    m3.innerText = "SELESAI";
+                    m3.className = "text-xs px-2.5 py-1 rounded bg-emerald-900/80 text-emerald-400 font-mono font-bold border border-emerald-700";
+                }
+            }
+        }
+
+        function openMissionsModal() {
+            document.getElementById('missions-modal').classList.remove('hidden');
+            renderQuiz();
+        }
+
+        function closeMissionsModal() {
+            document.getElementById('missions-modal').classList.add('hidden');
+        }
+
+        function switchModalTab(tab) {
+            const missionsTab = document.getElementById('modal-tab-missions');
+            const quizTab = document.getElementById('modal-tab-quiz');
+            const btnMissions = document.getElementById('tab-btn-missions');
+            const btnQuiz = document.getElementById('tab-btn-quiz');
+
+            if (tab === 'missions') {
+                missionsTab.classList.remove('hidden');
+                quizTab.classList.add('hidden');
+                btnMissions.className = "px-4 py-2 text-emerald-400 border-b-2 border-emerald-500 font-semibold";
+                btnQuiz.className = "px-4 py-2 text-slate-400 hover:text-white font-semibold";
+            } else {
+                missionsTab.classList.add('hidden');
+                quizTab.classList.remove('hidden');
+                btnQuiz.className = "px-4 py-2 text-emerald-400 border-b-2 border-emerald-500 font-semibold";
+                btnMissions.className = "px-4 py-2 text-slate-400 hover:text-white font-semibold";
+            }
+        }
+
+        const quizQuestions = [
+            {
+                q: "Apa yang menyebabkan munculnya Awan Panas (Pyroclastic Flow) saat erupsi gunung berapi?",
+                options: [
+                    "Runtuhnya kolom erupsi dan kubah lava akibat tekanan gas dan gravitasi",
+                    "Penguapan air laut secara mendadak di sekitar kawah",
+                    "Perbedaan geser angin di atmosfer bagian atas",
+                    "Pergerakan lempeng transform di dasar laut"
+                ],
+                correct: 0,
+                explanation: "Awan panas terbentuk dari runtuhnya kolom erupsi gas dan material vulkanik yang meluncur cepat ke lereng gunung."
+            },
+            {
+                q: "Skala apakah yang digunakan untuk mengukur intensitas kerosakan akibat angin puting beliung?",
+                options: [
+                    "Skala Richter",
+                    "Skala Enhanced Fujita (EF)",
+                    "Skala Volcanic Explosivity Index (VEI)",
+                    "Skala Beaufort"
+                ],
+                correct: 1,
+                explanation: "Skala Enhanced Fujita (EF0 - EF5) mengukur kekuatan dan tingkat kerusakan angin puting beliung."
+            },
+            {
+                q: "Manakah jenis gelombang seismik yang merambat paling cepat saat gempa bumi terjadi?",
+                options: [
+                    "Gelombang Sekunder (S)",
+                    "Gelombang Permukaan (Love)",
+                    "Gelombang Primer (P)",
+                    "Gelombang Rayleigh"
+                ],
+                correct: 2,
+                explanation: "Gelombang Primer (P) adalah gelombang longitudinal/kompresional yang merambat paling cepat."
+            }
+        ];
+
+        let quizAnswers = {};
+
+        function renderQuiz() {
+            const container = document.getElementById('quiz-container');
+            if (!container) return;
+
+            container.innerHTML = quizQuestions.map((q, qIdx) => {
+                const answered = quizAnswers[qIdx] !== undefined;
+                const isCorrect = quizAnswers[qIdx] === q.correct;
+
+                return `
+                    <div class="bg-slate-900/90 p-3.5 rounded-xl border border-slate-800 space-y-2">
+                        <p class="font-semibold text-xs text-slate-200">${qIdx + 1}. ${q.q}</p>
+                        <div class="space-y-1.5 mt-2">
+                            ${q.options.map((opt, optIdx) => {
+                                let optStyle = "bg-slate-800/80 hover:bg-slate-700 text-slate-300 border-slate-700";
+                                if (answered) {
+                                    if (optIdx === q.correct) {
+                                        optStyle = "bg-emerald-950/80 text-emerald-300 border-emerald-600 font-semibold";
+                                    } else if (quizAnswers[qIdx] === optIdx) {
+                                        optStyle = "bg-rose-950/80 text-rose-300 border-rose-600";
+                                    } else {
+                                        optStyle = "bg-slate-800/40 text-slate-500 border-slate-800";
+                                    }
+                                }
+                                return `
+                                    <button onclick="checkQuizAnswer(${qIdx}, ${optIdx})" ${answered ? 'disabled' : ''} class="w-full text-left px-3 py-2 rounded-lg border text-xs transition flex items-center justify-between ${optStyle}">
+                                        <span>${opt}</span>
+                                    </button>
+                                `;
+                            }).join('')}
+                        </div>
+                        ${answered ? `
+                            <div class="text-[11px] p-2 rounded-lg mt-2 ${isCorrect ? 'bg-emerald-950/40 text-emerald-400 border border-emerald-800/50' : 'bg-rose-950/40 text-rose-400 border border-rose-800/50'}">
+                                ${isCorrect ? '✓ Benar! ' : '✕ Kurang Tepat. '} ${q.explanation}
+                            </div>
+                        ` : ''}
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function checkQuizAnswer(qIdx, optIdx) {
+            quizAnswers[qIdx] = optIdx;
+            renderQuiz();
+        }
+
+        function toggleInfoDrawer() {
+            const drawer = document.getElementById('info-drawer');
+            if (drawer) {
+                drawer.classList.toggle('hidden');
+            }
+        }
+
+        function toggleCanvasPlay() {
+            isPaused = !isPaused;
+            const icon = document.getElementById('icon-pause');
+            if (icon) {
+                icon.setAttribute('data-lucide', isPaused ? 'play' : 'pause');
+                lucide.createIcons();
+            }
+        }
+
+        // HUD & Telemetry Status Updater
+        function updateTelemetryHUD() {
+            const fpsEl = document.getElementById('tele-fps');
+            const particlesEl = document.getElementById('tele-particles');
+            const statusBadge = document.getElementById('hud-status-badge');
+            const intensityEl = document.getElementById('tele-intensity');
+
+            if (particlesEl) particlesEl.innerText = particles.length;
+
+            let statusTxt = "NORMAL";
+            let badgeClass = "px-2.5 py-1 bg-slate-900/90 border border-emerald-500/50 text-emerald-400 text-xs font-mono font-bold rounded-full flex items-center gap-1.5";
+            let dotClass = "w-2 h-2 rounded-full bg-emerald-500 animate-pulse";
+
+            let intensityText = "PASIF / TIDAK ADA DAMPAK";
+
+            if (currentDisaster === 'volcano') {
+                if (state.volcano.pressure > 80 || state.volcano.exploding) {
+                    statusTxt = "BAHAYA - ERUPSI EKSPLOSIF";
+                    badgeClass = "px-2.5 py-1 bg-slate-900/90 border border-rose-500/50 text-rose-400 text-xs font-mono font-bold rounded-full flex items-center gap-1.5";
+                    dotClass = "w-2 h-2 rounded-full bg-rose-500 animate-ping";
+                    intensityText = "ERUPSI EKSPLOSIF TINGGI";
+                } else if (state.volcano.pressure > 0) {
+                    statusTxt = "WASPADA - AKTIVITAS MAGMA";
+                    badgeClass = "px-2.5 py-1 bg-slate-900/90 border border-amber-500/50 text-amber-400 text-xs font-mono font-bold rounded-full flex items-center gap-1.5";
+                    dotClass = "w-2 h-2 rounded-full bg-amber-500 animate-pulse";
+                    intensityText = "TEKANAN MAGMA MENINGKAT";
+                }
+            } else if (currentDisaster === 'tornado') {
+                if (state.tornado.windshear > 200 && state.tornado.tempdiff > 25) {
+                    statusTxt = "BAHAYA - ROTASI SUPERCELL";
+                    badgeClass = "px-2.5 py-1 bg-slate-900/90 border border-rose-500/50 text-rose-400 text-xs font-mono font-bold rounded-full flex items-center gap-1.5";
+                    dotClass = "w-2 h-2 rounded-full bg-rose-500 animate-ping";
+                    intensityText = "PUTING BELIUNG DAHSYAT";
+                } else if (state.tornado.windshear > 0) {
+                    statusTxt = "WASPADA - PERBEDAAN SUHU & GESER ANGIN";
+                    badgeClass = "px-2.5 py-1 bg-slate-900/90 border border-amber-500/50 text-amber-400 text-xs font-mono font-bold rounded-full flex items-center gap-1.5";
+                    dotClass = "w-2 h-2 rounded-full bg-amber-500 animate-pulse";
+                    intensityText = "POTENSI MESOSIKLON";
+                }
+            } else if (currentDisaster === 'quake') {
+                if (state.quake.magnitude > 6.0) {
+                    statusTxt = "BAHAYA - GEMPA DAHSYAT";
+                    badgeClass = "px-2.5 py-1 bg-slate-900/90 border border-rose-500/50 text-rose-400 text-xs font-mono font-bold rounded-full flex items-center gap-1.5";
+                    dotClass = "w-2 h-2 rounded-full bg-rose-500 animate-ping";
+                    intensityText = `GUNCANGAN HIGH INTENSITY (${state.quake.magnitude} SR)`;
+                } else if (state.quake.magnitude > 0) {
+                    statusTxt = "WASPADA - GETARAN SEISMIK";
+                    badgeClass = "px-2.5 py-1 bg-slate-900/90 border border-amber-500/50 text-amber-400 text-xs font-mono font-bold rounded-full flex items-center gap-1.5";
+                    dotClass = "w-2 h-2 rounded-full bg-amber-500 animate-pulse";
+                    intensityText = `GUNCANGAN SEDANG (${state.quake.magnitude} SR)`;
+                }
+            } else if (currentDisaster === 'tsunami') {
+                if (state.tsunami.displacement > 10) {
+                    statusTxt = "BAHAYA - GELOMBANG TSUNAMI";
+                    badgeClass = "px-2.5 py-1 bg-slate-900/90 border border-rose-500/50 text-rose-400 text-xs font-mono font-bold rounded-full flex items-center gap-1.5";
+                    dotClass = "w-2 h-2 rounded-full bg-rose-500 animate-ping";
+                    intensityText = `GELOMBANG TINGGI (${state.tsunami.displacement}m DISLOKASI)`;
+                } else if (state.tsunami.displacement > 0) {
+                    statusTxt = "WASPADA - DISLOKASI DASAR LAUT";
+                    badgeClass = "px-2.5 py-1 bg-slate-900/90 border border-amber-500/50 text-amber-400 text-xs font-mono font-bold rounded-full flex items-center gap-1.5";
+                    dotClass = "w-2 h-2 rounded-full bg-amber-500 animate-pulse";
+                    intensityText = "ANOMALI GELOMBANG PERMUKAAN";
+                }
+            }
+
+            if (statusBadge) {
+                statusBadge.className = badgeClass;
+                statusBadge.innerHTML = `<span class="${dotClass}"></span> SYSTEM ${statusTxt}`;
+            }
+            if (intensityEl) intensityEl.innerText = intensityText;
+        }
+
+        // Main Loop Variables
+        let lastTime = performance.now();
+        let frameCount = 0;
+        let fpsTimer = performance.now();
+
+        function animate(now) {
+            frameCount++;
+            if (now - fpsTimer >= 1000) {
+                const fpsEl = document.getElementById('tele-fps');
+                if (fpsEl) fpsEl.innerText = frameCount;
+                frameCount = 0;
+                fpsTimer = now;
+            }
+
+            const w = canvas.width / window.devicePixelRatio;
+            const h = canvas.height / window.devicePixelRatio;
+
+            ctx.clearRect(0, 0, w, h);
+
+            if (currentDisaster === 'volcano') {
+                renderVolcano(w, h, now);
+            } else if (currentDisaster === 'tornado') {
+                renderTornado(w, h, now);
+            } else if (currentDisaster === 'quake') {
+                renderQuake(w, h, now);
+            } else if (currentDisaster === 'tsunami') {
+                renderTsunami(w, h, now);
+            }
+
+            renderSensorsOnCanvas();
+            updateSensorReadoutValues();
+            updateTelemetryHUD();
+
+            requestAnimationFrame(animate);
+        }
+
+        // Initialization
+        window.addEventListener('DOMContentLoaded', () => {
+            lucide.createIcons();
+            selectDisaster('volcano');
+            requestAnimationFrame(animate);
+        });
+    </script>
+</body>
+</html>
